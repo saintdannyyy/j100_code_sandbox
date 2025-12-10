@@ -409,23 +409,47 @@
             flex: 1;
             display: flex;
             overflow: hidden;
+            position: relative;
         }
 
         .editor-container {
             flex: 1;
             position: relative;
+            min-width: 300px;
+        }
+
+        .split-divider {
+            width: 4px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            cursor: col-resize;
+            user-select: none;
+            transition: background 0.2s ease;
+            z-index: 50;
+            position: relative;
+        }
+
+        .split-divider:hover,
+        .split-divider.dragging {
+            background: var(--primary-color);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
         }
 
         .preview-container {
-            width: 0;
+            flex: 1;
             background: white;
             border-left: 2px solid #3a3a52;
             overflow: hidden;
-            transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, flex 0.2s ease;
         }
 
         .preview-container.show {
-            width: 50%;
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .preview-header {
@@ -998,10 +1022,13 @@
                 </div>
             </div>
 
-            <div class="split-view">
+            <div class="split-view" id="splitView">
                 <div class="editor-container">
                     <div id="editor"></div>
                 </div>
+
+                <!-- Resizable divider -->
+                <div class="split-divider" id="splitDivider"></div>
 
                 <!-- Preview panel for HTML/CSS/JS -->
                 <div class="preview-container" id="previewContainer">
@@ -1454,7 +1481,6 @@ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 color: #333;
 min-height: 100vh;
-display: flex;
 justify-content: center;
 align-items: center;
 }
