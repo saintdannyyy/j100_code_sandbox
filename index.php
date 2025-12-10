@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>J100 Coding Sandbox</title>
     <style>
         :root {
@@ -719,19 +720,33 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .project-mode-toggle:hover:not(.active) {
+            background: rgba(0, 153, 255, 0.2);
+            border-color: var(--primary-color);
         }
 
         .project-mode-toggle.active {
-            background: rgba(0, 212, 255, 0.25);
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            border-color: #22c55e;
+            color: white;
+            box-shadow: 0 6px 20px rgba(74, 222, 128, 0.4);
         }
 
-        .toggle-preview-btn {
-            background: rgba(0, 153, 255, 0.1);
-            border: 1px solid #0099ff;
+        .project-mode-toggle.active:hover {
+            background: linear-gradient(135deg, #52e081 0%, #2dd964 100%);
+            box-shadow: 0 8px 24px rgba(74, 222, 128, 0.5);
+            transform: translateY(-2px);
         }
 
-        .toggle-preview-btn.active {
-            background: rgba(0, 212, 255, 0.25);
+        .project-mode-toggle:not(.active) {
+            opacity: 0.7;
+        }
+
+        .project-mode-toggle:not(.active):hover {
+            opacity: 1;
         }
 
         /* Tooltip Styles */
@@ -980,7 +995,7 @@
         </div>
         <div id="controls">
             <button class="project-mode-toggle" id="projectModeBtn" data-tooltip="Toggle multi-file project mode">
-                📁 Project Mode
+                <i class="fas fa-folder"></i> Project Mode
             </button>
             <select id="lang-select" data-tooltip="Select programming language">
                 <option value="python">Python</option>
@@ -991,13 +1006,23 @@
                 <option value="css">CSS</option>
             </select>
             <button class="toggle-preview-btn" id="togglePreviewBtn" style="display: none;" data-tooltip="Toggle live preview">
-                👁️ Preview
+                <i class="fas fa-eye"></i> Preview
             </button>
-            <button class="run-btn" id="runBtn" data-tooltip="Run code (Ctrl+Enter)">▶ Run</button>
-            <button id="copyBtn" data-tooltip="Copy to clipboard">📋 Copy</button>
-            <button id="saveBtn" data-tooltip="Save snippet (Ctrl+S)">💾 Save</button>
-            <button id="loadBtn" data-tooltip="Load snippet">📂 Load</button>
-            <button id="newBtn" data-tooltip="Create new snippet">+ New</button>
+            <button class="run-btn" id="runBtn" data-tooltip="Run code (Ctrl+Enter)">
+                <i class="fas fa-play"></i> Run
+            </button>
+            <button id="copyBtn" data-tooltip="Copy to clipboard">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+            <button id="saveBtn" data-tooltip="Save snippet (Ctrl+S)">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button id="loadBtn" data-tooltip="Load snippet">
+                <i class="fas fa-folder-open"></i> Load
+            </button>
+            <button id="newBtn" data-tooltip="Create new snippet">
+                <i class="fas fa-plus"></i> New
+            </button>
         </div>
     </header>
 
@@ -1006,7 +1031,9 @@
         <div class="sidebar" id="sidebar" style="display: none;">
             <div class="sidebar-header">
                 <h3>Files</h3>
-                <button class="add-file-btn" id="addFileBtn">+</button>
+                <button class="add-file-btn" id="addFileBtn">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
             <div class="files-list" id="filesList">
                 <!-- File items will be added here -->
@@ -1034,7 +1061,9 @@
                 <div class="preview-container" id="previewContainer">
                     <div class="preview-header">
                         Live Preview
-                        <button class="clear-output" id="refreshPreviewBtn">🔄 Refresh</button>
+                        <button class="clear-output" id="refreshPreviewBtn">
+                            <i class="fas fa-redo"></i> Refresh
+                        </button>
                     </div>
                     <iframe id="previewFrame" class="preview-iframe" sandbox="allow-scripts"></iframe>
                 </div>
@@ -1047,19 +1076,21 @@
         <div class="resizer" id="outputResizer"></div>
         <div class="output-header">
             Output Console
-            <button class="clear-output" id="clearBtn">Clear</button>
+            <button class="clear-output" id="clearBtn">
+                <i class="fas fa-trash"></i> Clear
+            </button>
         </div>
         <div id="output">Ready to run your code...</div>
     </div>
 
     <!-- Keyboard Shortcuts Toggle -->
     <div class="shortcuts-toggle" id="shortcutsToggle" data-tooltip="Keyboard shortcuts (?)">
-        ⌨️
+        <i class="fas fa-keyboard"></i>
     </div>
 
     <!-- Keyboard Shortcuts Panel -->
     <div class="shortcuts-panel" id="shortcutsPanel">
-        <h4>⌨️ Keyboard Shortcuts</h4>
+        <h4><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h4>
         <div class="shortcut-item">
             <span>Run Code</span>
             <span class="shortcut-key">Ctrl + Enter</span>
@@ -1085,7 +1116,7 @@
     <!-- Add File Modal -->
     <div class="modal" id="addFileModal">
         <div class="modal-content">
-            <h3>📄 Add New File</h3>
+            <h3><i class="fas fa-file"></i> Add New File</h3>
             <div class="form-group">
                 <label>File Name *</label>
                 <input type="text" id="newFileName" placeholder="e.g., index.html, style.css, script.js">
@@ -1100,7 +1131,7 @@
     <!-- Save Modal -->
     <div class="modal" id="saveModal">
         <div class="modal-content">
-            <h3>💾 Save Code Snippet</h3>
+            <h3><i class="fas fa-save"></i> Save Code Snippet</h3>
             <div class="form-group">
                 <label>Title *</label>
                 <input type="text" id="snippetTitle" placeholder="e.g., Hello World Program">
@@ -1127,7 +1158,7 @@
     <!-- Load Modal -->
     <div class="modal" id="loadModal">
         <div class="modal-content">
-            <h3>📂 Load Snippet</h3>
+            <h3><i class="fas fa-folder-open"></i> Load Snippet</h3>
             <div class="form-group">
                 <label>Snippet ID or URL</label>
                 <input type="text" id="snippetId" placeholder="Enter snippet ID (e.g., abc123)">
@@ -1254,8 +1285,16 @@
 
         // Show notification
         function showNotification(message, type = 'info') {
+            const icons = {
+                'success': '<i class="fas fa-check-circle"></i>',
+                'error': '<i class="fas fa-exclamation-circle"></i>',
+                'warning': '<i class="fas fa-exclamation-triangle"></i>',
+                'info': '<i class="fas fa-info-circle"></i>'
+            };
+            const icon = icons[type] || '<i class="fas fa-info-circle"></i>';
+
             const notif = document.getElementById('notification');
-            notif.textContent = message;
+            notif.innerHTML = `${icon} ${message}`;
             notif.className = 'notification show ' + type;
             setTimeout(() => notif.classList.remove('show'), 3000);
         }
@@ -1264,16 +1303,16 @@
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
             const icons = {
-                'html': '📄',
-                'css': '🎨',
-                'js': '⚡',
-                'json': '📋',
-                'md': '📝',
-                'py': '🐍',
-                'java': '☕',
-                'cpp': '⚙️',
+                'html': '<i class="fas fa-code"></i>',
+                'css': '<i class="fas fa-palette"></i>',
+                'js': '<i class="fas fa-bolt"></i>',
+                'json': '<i class="fas fa-list"></i>',
+                'md': '<i class="fas fa-file-alt"></i>',
+                'py': '<i class="fas fa-snake"></i>',
+                'java': '<i class="fas fa-cup"></i>',
+                'cpp': '<i class="fas fa-gear"></i>',
             };
-            return icons[ext] || '📄';
+            return icons[ext] || '<i class="fas fa-file"></i>';
         }
 
         // Get language from filename
@@ -1316,13 +1355,14 @@
             files.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item' + (index === currentFileIndex ? ' active' : '');
+                // In renderFilesList function, replace the fileItem.innerHTML section:
                 fileItem.innerHTML = `
-                    <div class="file-name">
-                        <span class="file-icon">${getFileIcon(file.name)}</span>
-                        <span>${file.name}</span>
-                    </div>
-                    ${files.length > 1 ? `<button class="delete-file-btn" data-index="${index}">✕</button>` : ''}
-                `;
+    <div class="file-name">
+        <span class="file-icon">${getFileIcon(file.name)}</span>
+        <span>${file.name}</span>
+    </div>
+    ${files.length > 1 ? `<button class="delete-file-btn" data-index="${index}"><i class="fas fa-times"></i></button>` : ''}
+`;
 
                 fileItem.addEventListener('click', (e) => {
                     if (!e.target.classList.contains('delete-file-btn')) {
@@ -1390,7 +1430,7 @@
             const htmlFile = files.find(f => f.language === 'html');
             if (!htmlFile) {
                 const iframe = document.getElementById('previewFrame');
-                iframe.srcdoc = '<h2 style="color: #f87171; padding: 20px;">No HTML file found in project</h2>';
+                iframe.srcdoc = '<h2 style="color: #f87171; padding: 20px;"><i class="fas fa-exclamation-circle"></i> No HTML file found in project</h2>';
                 return;
             }
 
@@ -1461,7 +1501,7 @@
 </head>
 
 <body>
-    <h1>Welcome to My Project</h1>
+    <h1>Welcome to J100 Code SandBox</h1>
     <script src="script.js"><\\/script>
 </body>
 
@@ -1479,7 +1519,7 @@ box-sizing: border-box;
 body {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: #333;
+color: #fff;
 min-height: 100vh;
 justify-content: center;
 align-items: center;
@@ -1669,16 +1709,19 @@ console.log('DOM loaded and parsed');
         });
 
         // Enhanced notification with icons
-        const originalShowNotification = showNotification;
         showNotification = function(message, type = 'info') {
             const icons = {
-                'success': '✓',
-                'error': '✗',
-                'warning': '⚠',
-                'info': 'ℹ'
+                'success': '<i class="fas fa-check-circle"></i>',
+                'error': '<i class="fas fa-exclamation-circle"></i>',
+                'warning': '<i class="fas fa-exclamation-triangle"></i>',
+                'info': '<i class="fas fa-info-circle"></i>'
             };
-            const icon = icons[type] || 'ℹ';
-            originalShowNotification(`${icon} ${message}`, type);
+            const icon = icons[type] || '<i class="fas fa-info-circle"></i>';
+
+            const notif = document.getElementById('notification');
+            notif.innerHTML = `${icon} ${message}`;
+            notif.className = 'notification show ' + type;
+            setTimeout(() => notif.classList.remove('show'), 3000);
         };
 
         // Loading state helper
@@ -1759,8 +1802,8 @@ console.log('DOM loaded and parsed');
                 }
 
                 document.getElementById("output").innerHTML =
-                    '<span class="success">✓ Web preview updated!</span>\n' +
-                    '<span class="info">View the live preview on the right →</span>';
+                    '<span class="success"><i class="fas fa-check-circle"></i> Web preview updated!</span>\n' +
+                    '<span class="info"><i class="fas fa-arrow-right"></i> View the live preview on the right →</span>';
                 return;
             }
 
@@ -1768,7 +1811,7 @@ console.log('DOM loaded and parsed');
             const code = editor.getValue();
             const outputDiv = document.getElementById("output");
 
-            outputDiv.innerHTML = '<span class="loading">⟳ Running code...</span>';
+            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Running code...</span>';
 
             setTimeout(() => {
                 if (!code.trim()) {
