@@ -1,0 +1,293 @@
+<?php
+// api/config.php - Database Configuration
+class Database {
+    private $host = "localhost";
+    private $db_name = "j100coders_db";
+    private $username = "root";  // Change to your DB username
+    private $password = "";      // Change to your DB password
+    public $conn;
+
+    public function getConnection() {
+        $this->conn = null;
+        try {
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                $this->username,
+                $this->password
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->exec("set names utf8mb4");
+        } catch(PDOException $e) {
+            error_log("Connection error: " . $e->getMessage());
+        }
+        return $this->conn;
+    }
+}
+
+// =============================================================================
+// api/snippets.php - Main API Endpoint (handles both GET and POST)
+// =============================================================================
+<?php
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+require_once 'config.php';
+
+$database = new Database();
+$db = $database->getConnection();
+
+$request_method = $_SERVER["REQUEST_METHOD"];
+$uri_parts = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
+
+// Route handling
+if ($request_method === 'POST') {
+    // Create new snippet
+    createSnippet($db);
+} elseif ($request_method === 'GET') {
+    // Get snippet by ID
+    if (isset($uri_parts[2]) && !empty($uri_parts[2])) {
+        getSnippet($db, $uri_parts[2]);
+    } else {
+        // List all snippets (optional)
+        listSnippets($db);
+    }
+}
+
+// =============================================================================
+// CREATE SNIPPET
+// =============================================================================
+function createSnippet($db) {
+    $data = json_decode(file_get_contents("php://input"));
+    
+    // Validation
+    if (empty($data->title) || empty($data->code) || empty($data->language)) {
+        http_response_code(400);
+        echo json_encode(["error" => "Title, code, and language are required"]);
+        return;
+    }
+    
+    // Generate unique ID
+    $snippet_id = generateUniqueId($db);
+    
+    // Get current timestamp
+    $created_at = date('Y-m-d H:i:s');
+    
+    // Default values
+    $description = isset($data->description) ? $data->description : '';
+    $permissions = isset($data->permissions) ? $data->permissions : 'public';
+    $author_id = isset($data->author_id) ? $data->author_id : 'anonymous';
+    
+    // Validate permissions
+    if (!in_array($permissions, ['public', 'unlisted', 'private'])) {
+        $permissions = 'public';
+    }
+    
+    try {
+        $query = "INSERT INTO code_snippets 
+                  (id, title, description, language, code, permissions, author_id, created_at, updated_at) 
+                  VALUES 
+                  (:id, :title, :description, :language, :code, :permissions, :author_id, :created_at, :updated_at)";
+        
+        $stmt = $db->prepare($query);
+        
+        $stmt->bindParam(":id", $snippet_id);
+        $stmt->bindParam(":title", $data->title);
+        $stmt->bindParam(":description", $description);
+        $stmt->bindParam(":language", $data->language);
+        $stmt->bindParam(":code", $data->code);
+        $stmt->bindParam(":permissions", $permissions);
+        $stmt->bindParam(":author_id", $author_id);
+        $stmt->bindParam(":created_at", $created_at);
+        $stmt->bindParam(":updated_at", $created_at);
+        
+        if ($stmt->execute()) {
+            http_response_code(201);
+            echo json_encode([
+                "message" => "Snippet created successfully",
+                "id" => $snippet_id,
+                "title" => $data->title,
+                "language" => $data->language,
+                "permissions" => $permissions,
+                "created_at" => $created_at
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["error" => "Unable to create snippet"]);
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+    }
+}
+
+// =============================================================================
+// GET SNIPPET BY ID
+// =============================================================================
+function getSnippet($db, $snippet_id) {
+    // Sanitize input
+    $snippet_id = htmlspecialchars(strip_tags($snippet_id));
+    
+    try {
+        $query = "SELECT * FROM code_snippets WHERE id = :id LIMIT 1";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $snippet_id);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Increment view count
+            incrementViews($db, $snippet_id);
+            
+            http_response_code(200);
+            echo json_encode([
+                "id" => $row['id'],
+                "title" => $row['title'],
+                "description" => $row['description'],
+                "language" => $row['language'],
+                "code" => $row['code'],
+                "permissions" => $row['permissions'],
+                "author_id" => $row['author_id'],
+                "created_at" => $row['created_at'],
+                "updated_at" => $row['updated_at'],
+                "views" => $row['views']
+            ]);
+        } else {
+            http_response_code(404);
+            echo json_encode(["error" => "Snippet not found"]);
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+    }
+}
+
+// =============================================================================
+// LIST SNIPPETS (optional - for browse page)
+// =============================================================================
+function listSnippets($db) {
+    try {
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Only show public snippets in listing
+        $query = "SELECT id, title, language, author_id, created_at, views 
+                  FROM code_snippets 
+                  WHERE permissions = 'public' 
+                  ORDER BY created_at DESC 
+                  LIMIT :limit OFFSET :offset";
+        
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
+        $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Get total count
+        $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE permissions = 'public'";
+        $countStmt = $db->prepare($countQuery);
+        $countStmt->execute();
+        $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+        
+        http_response_code(200);
+        echo json_encode([
+            "snippets" => $snippets,
+            "total" => $total,
+            "page" => $page,
+            "limit" => $limit,
+            "total_pages" => ceil($total / $limit)
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+    }
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+function generateUniqueId($db) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $id_length = 8;
+    
+    do {
+        $id = '';
+        for ($i = 0; $i < $id_length; $i++) {
+            $id .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        
+        // Check if ID exists
+        $query = "SELECT id FROM code_snippets WHERE id = :id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
+    } while ($stmt->rowCount() > 0);
+    
+    return $id;
+}
+
+function incrementViews($db, $snippet_id) {
+    try {
+        $query = "UPDATE code_snippets SET views = views + 1 WHERE id = :id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $snippet_id);
+        $stmt->execute();
+    } catch (PDOException $e) {
+        // Silently fail - don't break the main request
+        error_log("Error incrementing views: " . $e->getMessage());
+    }
+}
+
+// =============================================================================
+// DATABASE SETUP SQL
+// =============================================================================
+/*
+
+-- Run this SQL to create the database and table:
+
+CREATE DATABASE IF NOT EXISTS j100coders_db 
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE j100coders_db;
+
+CREATE TABLE IF NOT EXISTS code_snippets (
+    id VARCHAR(12) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    language VARCHAR(50) NOT NULL,
+    code LONGTEXT NOT NULL,
+    permissions ENUM('public', 'unlisted', 'private') DEFAULT 'public',
+    author_id VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    views INT DEFAULT 0,
+    INDEX idx_author (author_id),
+    INDEX idx_created (created_at),
+    INDEX idx_permissions (permissions),
+    INDEX idx_language (language)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Optional: Create user authentication table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+*/
+?>
