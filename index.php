@@ -1910,8 +1910,8 @@ console.log('DOM loaded and parsed');
             document.getElementById('togglePreviewBtn').classList.remove('active');
         };
 
-        // Run Code (Simulated)
-        document.getElementById("runBtn").onclick = () => {
+        // Run Code - Execute via backend API
+        document.getElementById("runBtn").onclick = async () => {
             // Save current file content
             if (projectMode && files.length > 0) {
                 files[currentFileIndex].content = editor.getValue();
@@ -1938,63 +1938,58 @@ console.log('DOM loaded and parsed');
             const lang = document.getElementById("lang-select").value;
             const code = editor.getValue();
             const outputDiv = document.getElementById("output");
+            const runBtn = document.getElementById("runBtn");
 
-            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Running code...</span>';
+            if (!code.trim()) {
+                outputDiv.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Error: No code to run!</span>';
+                return;
+            }
 
-            setTimeout(() => {
-                if (!code.trim()) {
-                    outputDiv.innerHTML = '<span class="error">Error: No code to run!</span>';
-                    return;
-                }
+            // Show loading state
+            runBtn.classList.add('running');
+            runBtn.disabled = true;
+            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Executing code...</span>';
 
-                let output = '';
+            try {
+                const response = await fetch(`${API_BASE}/execute.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        language: lang,
+                        code: code
+                    })
+                });
 
-                if (lang === 'python') {
-                    const matches = code.match(/print\s*\(\s*["'](.+?)["']\s*\)/g);
-                    if (matches) {
-                        matches.forEach(m => {
-                            const content = m.match(/["'](.+?)["']/)[1];
-                            output += content + '\n';
-                        });
-                    } else {
-                        output = 'Code executed successfully (no print statements found)';
-                    }
-                } else if (lang === 'javascript') {
-                    const matches = code.match(/console\.log\s*\(\s*["'](.+?)["']\s*\)/g);
-                    if (matches) {
-                        matches.forEach(m => {
-                            const content = m.match(/["'](.+?)["']/)[1];
-                            output += content + '\n';
-                        });
-                    } else {
-                        output = 'Code executed successfully';
-                    }
-                } else if (lang === 'cpp') {
-                    const matches = code.match(/cout\s*<<\s*["'](.+?)["'] /g);
-                    if (matches) {
-                        matches.forEach(m => {
-                            const content = m.match(/["'](.+?)["']/)[1];
-                            output += content + '\n';
-                        });
-                    } else {
-                        output = 'Program compiled and executed successfully';
-                    }
-                } else if (lang === 'java') {
-                    const matches = code.match(/System\.out\.println\s*\(\s*["'](.+?)["']\s*\)/g);
-                    if (matches) {
-                        matches.forEach(m => {
-                            const content = m.match(/["'](.+?)["']/)[1];
-                            output += content + '\n';
-                        });
-                    } else {
-                        output = 'Program compiled and executed successfully';
-                    }
+                const result = await response.json();
+
+                if (result.error) {
+                    outputDiv.innerHTML = `<span class="info">═══ Execution Error ═══</span>\n<span class="error">${escapeHtml(result.error)}</span>${result.details ? '\n<span class="error">' + escapeHtml(result.details) + '</span>' : ''}`;
                 } else {
-                    output = `✓ ${lang.toUpperCase()} code validated successfully`;
-                }
+                    const statusIcon = result.success ?
+                        '<i class="fas fa-check-circle"></i>' :
+                        '<i class="fas fa-exclamation-triangle"></i>';
+                    const statusClass = result.success ? 'success' : 'error';
+                    const versionInfo = result.version ? ` (${result.language} ${result.version})` : '';
+                    const timeInfo = result.execution_time ? `\n<span class="info">Execution time: ${result.execution_time}s</span>` : '';
 
-                outputDiv.innerHTML = `<span class="info">═══ Execution Result ═══</span>\n<span class="success">${output}</span>\n<span class="info">═══ Completed ═══</span>`;
-            }, 800);
+                    outputDiv.innerHTML =
+                        `<span class="info">═══ ${lang.toUpperCase()}${versionInfo} ═══</span>\n` +
+                        `<span class="${statusClass}">${escapeHtml(result.output)}</span>` +
+                        timeInfo +
+                        `\n<span class="info">═══ ${statusIcon} Completed ═══</span>`;
+                }
+            } catch (error) {
+                console.error('Execution error:', error);
+                outputDiv.innerHTML =
+                    '<span class="info">═══ Execution Error ═══</span>\n' +
+                    '<span class="error"><i class="fas fa-exclamation-circle"></i> Failed to connect to execution service.</span>\n' +
+                    '<span class="info">Check your internet connection and try again.</span>';
+            } finally {
+                runBtn.classList.remove('running');
+                runBtn.disabled = false;
+            }
         };
 
         // Save Modal
