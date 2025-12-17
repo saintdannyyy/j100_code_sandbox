@@ -984,6 +984,130 @@
                 left: 16px;
             }
         }
+
+        /* Snippet Browser Styles */
+        .snippets-browser {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .snippets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .snippet-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .snippet-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        .snippet-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-color);
+            border-radius: 8px;
+            font-size: 18px;
+            color: white;
+        }
+
+        .snippet-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .snippet-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .snippet-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .snippet-lang {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--primary-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .snippet-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .snippet-delete-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+
+        .snippet-delete-btn:hover {
+            background: rgba(248, 113, 113, 0.2);
+            border-color: var(--error-color);
+            color: var(--error-color);
+        }
+
+        .loading-snippets,
+        .no-snippets,
+        .error-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .no-snippets i,
+        .error-message i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+            opacity: 0.5;
+        }
+
+        .no-snippets p {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .error-message {
+            color: var(--error-color);
+        }
     </style>
 </head>
 
@@ -1157,15 +1281,15 @@
 
     <!-- Load Modal -->
     <div class="modal" id="loadModal">
-        <div class="modal-content">
-            <h3><i class="fas fa-folder-open"></i> Load Snippet</h3>
-            <div class="form-group">
-                <label>Snippet ID or URL</label>
-                <input type="text" id="snippetId" placeholder="Enter snippet ID (e.g., abc123)">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3><i class="fas fa-folder-open"></i> My Snippets</h3>
+            <div class="snippets-browser">
+                <div class="snippets-list" id="snippetsList">
+                    <div class="loading-snippets"><i class="fas fa-spinner fa-spin"></i> Loading your snippets...</div>
+                </div>
             </div>
             <div class="modal-buttons">
-                <button id="cancelLoad">Cancel</button>
-                <button id="confirmLoad" class="run-btn">Load</button>
+                <button id="cancelLoad">Close</button>
             </div>
         </div>
     </div>
@@ -1179,6 +1303,11 @@
     <script>
         // API Configuration
         const API_BASE = './api';
+
+        // Get user ID from URL parameter (?as=16)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentUserId = urlParams.get('as') || 'anonymous';
+        console.log('Current User ID:', currentUserId);
 
         // Default code templates
         const templates = {
@@ -1270,11 +1399,10 @@
                     console.log('Monaco Editor initialized successfully');
                 }, 100);
 
-                // Check URL for snippet ID
-                const urlParams = new URLSearchParams(window.location.search);
-                const snippetId = urlParams.get('snippet');
-                if (snippetId) {
-                    loadSnippet(snippetId);
+                // Check URL for snippet ID (reuse urlParams from top-level)
+                const snippetIdParam = urlParams.get('snippet');
+                if (snippetIdParam) {
+                    loadSnippet(snippetIdParam);
                 }
             } catch (error) {
                 console.error('Monaco Editor initialization error:', error);
@@ -1898,7 +2026,7 @@ console.log('DOM loaded and parsed');
                 language: document.getElementById("lang-select").value,
                 code: editor.getValue(),
                 permissions: document.getElementById('snippetPermission').value,
-                author_id: 'current_user_id' // Replace with actual user ID from session
+                author_id: currentUserId
             };
 
             try {
@@ -1947,38 +2075,126 @@ console.log('DOM loaded and parsed');
             }
         };
 
-        // Load Modal
-        document.getElementById("loadBtn").onclick = () => {
+        // Load Modal - Show user's snippets browser
+        document.getElementById("loadBtn").onclick = async () => {
             document.getElementById('loadModal').classList.add('show');
-            document.getElementById('snippetId').focus();
+            await loadUserSnippets();
         };
 
         document.getElementById("cancelLoad").onclick = () => {
             document.getElementById('loadModal').classList.remove('show');
-            document.getElementById('snippetId').value = '';
         };
 
-        document.getElementById("confirmLoad").onclick = async () => {
-            const input = document.getElementById('snippetId').value.trim();
-            if (!input) {
-                showNotification('Please enter a snippet ID!', 'error');
-                return;
-            }
+        // Load user's snippets list
+        async function loadUserSnippets() {
+            const listContainer = document.getElementById('snippetsList');
+            listContainer.innerHTML = '<div class="loading-snippets"><i class="fas fa-spinner fa-spin"></i> Loading your snippets...</div>';
 
-            // Extract ID from URL if full URL provided
-            let snippetId = input;
             try {
-                const url = new URL(input);
-                snippetId = url.searchParams.get('snippet') || input;
-            } catch (e) {
-                // Not a URL, treat as ID
+                const response = await fetch(`${API_BASE}/snippets?author=${currentUserId}`);
+                const data = await response.json();
+
+                if (data.snippets && data.snippets.length > 0) {
+                    listContainer.innerHTML = data.snippets.map(snippet => `
+                        <div class="snippet-item" data-id="${snippet.id}">
+                            <div class="snippet-icon">
+                                <i class="fas fa-${getLanguageIcon(snippet.language)}"></i>
+                            </div>
+                            <div class="snippet-info">
+                                <div class="snippet-title">${escapeHtml(snippet.title)}</div>
+                                <div class="snippet-meta">
+                                    <span class="snippet-lang">${snippet.language}</span>
+                                    <span class="snippet-date">${formatDate(snippet.created_at)}</span>
+                                    <span class="snippet-views"><i class="fas fa-eye"></i> ${snippet.views || 0}</span>
+                                </div>
+                            </div>
+                            <div class="snippet-actions">
+                                <button class="snippet-delete-btn" data-id="${snippet.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Add click handlers for loading snippets
+                    listContainer.querySelectorAll('.snippet-item').forEach(item => {
+                        item.addEventListener('click', async (e) => {
+                            if (e.target.closest('.snippet-delete-btn')) return;
+                            const snippetId = item.dataset.id;
+                            document.getElementById('loadModal').classList.remove('show');
+                            await loadSnippet(snippetId);
+                        });
+                    });
+
+                    // Add delete handlers
+                    listContainer.querySelectorAll('.snippet-delete-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this snippet?')) {
+                                await deleteSnippet(btn.dataset.id);
+                                await loadUserSnippets();
+                            }
+                        });
+                    });
+                } else {
+                    listContainer.innerHTML = `
+                        <div class="no-snippets">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No snippets yet</p>
+                            <small>Save your first snippet to see it here!</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading snippets:', error);
+                listContainer.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle"></i> Failed to load snippets</div>';
             }
+        }
 
-            document.getElementById('loadModal').classList.remove('show');
-            document.getElementById('snippetId').value = '';
+        // Helper functions for snippet browser
+        function getLanguageIcon(lang) {
+            const icons = {
+                'javascript': 'js',
+                'python': 'python',
+                'java': 'java',
+                'html': 'html5',
+                'css': 'css3-alt',
+                'cpp': 'code',
+                'sql': 'database',
+                'php': 'php'
+            };
+            return icons[lang] || 'file-code';
+        }
 
-            await loadSnippet(snippetId);
-        };
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function deleteSnippet(snippetId) {
+            try {
+                const response = await fetch(`${API_BASE}/snippets/${snippetId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    showNotification('Snippet deleted', 'success');
+                } else {
+                    showNotification('Failed to delete snippet', 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to delete snippet', 'error');
+            }
+        }
 
         // Load snippet function
         async function loadSnippet(snippetId) {
