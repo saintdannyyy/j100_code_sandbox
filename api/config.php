@@ -1,8 +1,8 @@
 <?php
 class Database
 {
-    private $host = "gator4029.hostgator.com";
-    private $db_name = "redink_codebin";
+    private $host = "localhost";
+    private $db_name = "redink_j100Coders";
     private $username = "redink_J100";  // Change to your DB username
     private $password = "Ad_H1m5_U53r";      // Change to your DB password
     public $conn;
