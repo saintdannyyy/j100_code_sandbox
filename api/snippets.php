@@ -5,7 +5,7 @@
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST, GET, DELETE, OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
@@ -56,6 +56,13 @@ if ($request_method === 'POST') {
         getSnippet($db, $snippet_id);
     } else {
         listSnippets($db);
+    }
+} elseif ($request_method === 'DELETE') {
+    if ($snippet_id !== null && !empty($snippet_id)) {
+        deleteSnippet($db, $snippet_id);
+    } else {
+        http_response_code(400);
+        echo json_encode(["error" => "Snippet ID required"]);
     }
 } else {
     http_response_code(405);
@@ -179,29 +186,55 @@ function getSnippet($db, $snippet_id)
 function listSnippets($db)
 {
     try {
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 50;
         $offset = ($page - 1) * $limit;
+        $author_id = isset($_GET['author']) ? $_GET['author'] : null;
 
-        // Only show public snippets in listing
-        $query = "SELECT id, title, language, author_id, created_at, views 
-                  FROM code_snippets 
-                  WHERE permissions = 'public' 
-                  ORDER BY created_at DESC 
-                  LIMIT :limit OFFSET :offset";
+        // If author_id provided, show all their snippets (including private/unlisted)
+        // Otherwise, only show public snippets
+        if ($author_id !== null && !empty($author_id)) {
+            $query = "SELECT id, title, description, language, author_id, created_at, updated_at, views, permissions 
+                      FROM code_snippets 
+                      WHERE author_id = :author_id 
+                      ORDER BY updated_at DESC 
+                      LIMIT :limit OFFSET :offset";
 
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
-        $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
-        $stmt->execute();
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":author_id", $author_id);
+            $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
+            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
+            $stmt->execute();
 
-        $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Get total count
-        $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE permissions = 'public'";
-        $countStmt = $db->prepare($countQuery);
-        $countStmt->execute();
-        $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            // Get total count for this author
+            $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE author_id = :author_id";
+            $countStmt = $db->prepare($countQuery);
+            $countStmt->bindParam(":author_id", $author_id);
+            $countStmt->execute();
+            $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+        } else {
+            // Public listing
+            $query = "SELECT id, title, description, language, author_id, created_at, views 
+                      FROM code_snippets 
+                      WHERE permissions = 'public' 
+                      ORDER BY created_at DESC 
+                      LIMIT :limit OFFSET :offset";
+
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
+            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Get total count
+            $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE permissions = 'public'";
+            $countStmt = $db->prepare($countQuery);
+            $countStmt->execute();
+            $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+        }
 
         http_response_code(200);
         echo json_encode([
@@ -251,5 +284,34 @@ function incrementViews($db, $snippet_id)
     } catch (PDOException $e) {
         // Silently fail - don't break the main request
         error_log("Error incrementing views: " . $e->getMessage());
+    }
+}
+
+// =============================================================================
+// DELETE SNIPPET
+// =============================================================================
+function deleteSnippet($db, $snippet_id)
+{
+    // Sanitize input
+    $snippet_id = preg_replace('/[^a-zA-Z0-9]/', '', $snippet_id);
+
+    try {
+        $query = "DELETE FROM code_snippets WHERE id = :id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $snippet_id);
+
+        if ($stmt->execute() && $stmt->rowCount() > 0) {
+            http_response_code(200);
+            echo json_encode([
+                "message" => "Snippet deleted successfully",
+                "id" => $snippet_id
+            ]);
+        } else {
+            http_response_code(404);
+            echo json_encode(["error" => "Snippet not found"]);
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
     }
 }
