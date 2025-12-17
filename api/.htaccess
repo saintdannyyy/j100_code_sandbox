@@ -1,230 +1,26 @@
 # ============================================================================
-# .htaccess - Place in your /api/ directory
+# .htaccess - API Routing for CodeBin
 # ============================================================================
 
 RewriteEngine On
 
 # CORS Headers
-Header always set Access-Control-Allow-Origin "*"
-Header always set Access-Control-Allow-Methods "POST, GET, OPTIONS, DELETE, PUT"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "POST, GET, OPTIONS, DELETE, PUT"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>
 
-# Handle OPTIONS requests
+# Handle OPTIONS preflight requests
 RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ $1 [R=200,L]
+RewriteRule ^(.*) - [R=200,L]
 
-# Route all requests to snippets.php
+# Don't rewrite existing files or directories
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^snippets/(.*)$ snippets.php/$1 [L,QSA]
+
+# Route /snippets/{id} to snippets.php?id={id}
+RewriteRule ^snippets/([a-zA-Z0-9]+)$ snippets.php?id=$1 [L,QSA]
+
+# Route /snippets to snippets.php
 RewriteRule ^snippets$ snippets.php [L,QSA]
-
-# ============================================================================
-# api/delete-snippet.php - DELETE endpoint (optional)
-# ============================================================================
-<?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once 'config.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
-    http_response_code(405);
-    echo json_encode(["error" => "Method not allowed"]);
-    exit();
-}
-
-$database = new Database();
-$db = $database->getConnection();
-
-// Get snippet ID from URL
-$uri_parts = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
-$snippet_id = end($uri_parts);
-
-if (empty($snippet_id)) {
-    http_response_code(400);
-    echo json_encode(["error" => "Snippet ID required"]);
-    exit();
-}
-
-try {
-    // Optional: Add authorization check here
-    // Verify that the user owns this snippet
-    
-    $query = "DELETE FROM code_snippets WHERE id = :id";
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(":id", $snippet_id);
-    
-    if ($stmt->execute() && $stmt->rowCount() > 0) {
-        http_response_code(200);
-        echo json_encode([
-            "message" => "Snippet deleted successfully",
-            "id" => $snippet_id
-        ]);
-    } else {
-        http_response_code(404);
-        echo json_encode(["error" => "Snippet not found"]);
-    }
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["error" => "Database error: " . $e->getMessage()]);
-}
-?>
-
-# ============================================================================
-# api/update-snippet.php - UPDATE endpoint (optional)
-# ============================================================================
-<?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: PUT, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-require_once 'config.php';
-
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
-    http_response_code(405);
-    echo json_encode(["error" => "Method not allowed"]);
-    exit();
-}
-
-$database = new Database();
-$db = $database->getConnection();
-
-$data = json_decode(file_get_contents("php://input"));
-
-if (empty($data->id)) {
-    http_response_code(400);
-    echo json_encode(["error" => "Snippet ID required"]);
-    exit();
-}
-
-try {
-    // Build dynamic update query
-    $updates = [];
-    $params = [":id" => $data->id];
-    
-    if (isset($data->title)) {
-        $updates[] = "title = :title";
-        $params[":title"] = $data->title;
-    }
-    if (isset($data->description)) {
-        $updates[] = "description = :description";
-        $params[":description"] = $data->description;
-    }
-    if (isset($data->code)) {
-        $updates[] = "code = :code";
-        $params[":code"] = $data->code;
-    }
-    if (isset($data->language)) {
-        $updates[] = "language = :language";
-        $params[":language"] = $data->language;
-    }
-    if (isset($data->permissions)) {
-        $updates[] = "permissions = :permissions";
-        $params[":permissions"] = $data->permissions;
-    }
-    
-    if (empty($updates)) {
-        http_response_code(400);
-        echo json_encode(["error" => "No fields to update"]);
-        exit();
-    }
-    
-    $updates[] = "updated_at = NOW()";
-    
-    $query = "UPDATE code_snippets SET " . implode(", ", $updates) . " WHERE id = :id";
-    $stmt = $db->prepare($query);
-    
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    
-    if ($stmt->execute() && $stmt->rowCount() > 0) {
-        http_response_code(200);
-        echo json_encode([
-            "message" => "Snippet updated successfully",
-            "id" => $data->id
-        ]);
-    } else {
-        http_response_code(404);
-        echo json_encode(["error" => "Snippet not found or no changes made"]);
-    }
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["error" => "Database error: " . $e->getMessage()]);
-}
-?>
-
-# ============================================================================
-# api/search.php - SEARCH endpoint (optional)
-# ============================================================================
-<?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-
-require_once 'config.php';
-
-$database = new Database();
-$db = $database->getConnection();
-
-$query_string = isset($_GET['q']) ? $_GET['q'] : '';
-$language = isset($_GET['language']) ? $_GET['language'] : '';
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = 20;
-$offset = ($page - 1) * $limit;
-
-try {
-    $sql = "SELECT id, title, language, author_id, created_at, views 
-            FROM code_snippets 
-            WHERE permissions = 'public'";
-    
-    $params = [];
-    
-    if (!empty($query_string)) {
-        $sql .= " AND (title LIKE :query OR description LIKE :query)";
-        $params[':query'] = '%' . $query_string . '%';
-    }
-    
-    if (!empty($language)) {
-        $sql .= " AND language = :language";
-        $params[':language'] = $language;
-    }
-    
-    $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
-    
-    $stmt = $db->prepare($sql);
-    
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    
-    $stmt->execute();
-    $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    http_response_code(200);
-    echo json_encode([
-        "snippets" => $snippets,
-        "page" => $page,
-        "query" => $query_string,
-        "language" => $language
-    ]);
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["error" => "Database error: " . $e->getMessage()]);
-}
-?>
