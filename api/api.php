@@ -1,13 +1,15 @@
 <?php
 // api/config.php - Database Configuration
-class Database {
+class Database
+{
     private $host = "localhost";
-    private $db_name = "j100coders_db";
-    private $username = "root";  // Change to your DB username
-    private $password = "";      // Change to your DB password
+    private $db_name = "redink_j100Coders";
+    private $username = "redink_J100";
+    private $password = "Ad_H1m5_U53r";
     public $conn;
 
-    public function getConnection() {
+    public function getConnection()
+    {
         $this->conn = null;
         try {
             $this->conn = new PDO(
@@ -17,7 +19,7 @@ class Database {
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->exec("set names utf8mb4");
-        } catch(PDOException $e) {
+        } catch (PDOException $e) {
             error_log("Connection error: " . $e->getMessage());
         }
         return $this->conn;
@@ -25,9 +27,9 @@ class Database {
 }
 
 // =============================================================================
-// api/snippets.php - Main API Endpoint (handles both GET and POST)
+// api/snippets.php - Main API Endpoint
 // =============================================================================
-<?php
+
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
@@ -65,40 +67,41 @@ if ($request_method === 'POST') {
 // =============================================================================
 // CREATE SNIPPET
 // =============================================================================
-function createSnippet($db) {
+function createSnippet($db)
+{
     $data = json_decode(file_get_contents("php://input"));
-    
+
     // Validation
     if (empty($data->title) || empty($data->code) || empty($data->language)) {
         http_response_code(400);
         echo json_encode(["error" => "Title, code, and language are required"]);
         return;
     }
-    
+
     // Generate unique ID
     $snippet_id = generateUniqueId($db);
-    
+
     // Get current timestamp
     $created_at = date('Y-m-d H:i:s');
-    
+
     // Default values
     $description = isset($data->description) ? $data->description : '';
     $permissions = isset($data->permissions) ? $data->permissions : 'public';
     $author_id = isset($data->author_id) ? $data->author_id : 'anonymous';
-    
+
     // Validate permissions
     if (!in_array($permissions, ['public', 'unlisted', 'private'])) {
         $permissions = 'public';
     }
-    
+
     try {
         $query = "INSERT INTO code_snippets 
                   (id, title, description, language, code, permissions, author_id, created_at, updated_at) 
                   VALUES 
                   (:id, :title, :description, :language, :code, :permissions, :author_id, :created_at, :updated_at)";
-        
+
         $stmt = $db->prepare($query);
-        
+
         $stmt->bindParam(":id", $snippet_id);
         $stmt->bindParam(":title", $data->title);
         $stmt->bindParam(":description", $description);
@@ -108,7 +111,7 @@ function createSnippet($db) {
         $stmt->bindParam(":author_id", $author_id);
         $stmt->bindParam(":created_at", $created_at);
         $stmt->bindParam(":updated_at", $created_at);
-        
+
         if ($stmt->execute()) {
             http_response_code(201);
             echo json_encode([
@@ -132,22 +135,23 @@ function createSnippet($db) {
 // =============================================================================
 // GET SNIPPET BY ID
 // =============================================================================
-function getSnippet($db, $snippet_id) {
+function getSnippet($db, $snippet_id)
+{
     // Sanitize input
     $snippet_id = htmlspecialchars(strip_tags($snippet_id));
-    
+
     try {
         $query = "SELECT * FROM code_snippets WHERE id = :id LIMIT 1";
         $stmt = $db->prepare($query);
         $stmt->bindParam(":id", $snippet_id);
         $stmt->execute();
-        
+
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             // Increment view count
             incrementViews($db, $snippet_id);
-            
+
             http_response_code(200);
             echo json_encode([
                 "id" => $row['id'],
@@ -174,32 +178,33 @@ function getSnippet($db, $snippet_id) {
 // =============================================================================
 // LIST SNIPPETS (optional - for browse page)
 // =============================================================================
-function listSnippets($db) {
+function listSnippets($db)
+{
     try {
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
         $offset = ($page - 1) * $limit;
-        
+
         // Only show public snippets in listing
         $query = "SELECT id, title, language, author_id, created_at, views 
                   FROM code_snippets 
                   WHERE permissions = 'public' 
                   ORDER BY created_at DESC 
                   LIMIT :limit OFFSET :offset";
-        
+
         $stmt = $db->prepare($query);
         $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
         $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
         $stmt->execute();
-        
+
         $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         // Get total count
         $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE permissions = 'public'";
         $countStmt = $db->prepare($countQuery);
         $countStmt->execute();
         $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
-        
+
         http_response_code(200);
         echo json_encode([
             "snippets" => $snippets,
@@ -217,27 +222,29 @@ function listSnippets($db) {
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
-function generateUniqueId($db) {
+function generateUniqueId($db)
+{
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $id_length = 8;
-    
+
     do {
         $id = '';
         for ($i = 0; $i < $id_length; $i++) {
             $id .= $characters[rand(0, strlen($characters) - 1)];
         }
-        
+
         // Check if ID exists
         $query = "SELECT id FROM code_snippets WHERE id = :id";
         $stmt = $db->prepare($query);
         $stmt->bindParam(":id", $id);
         $stmt->execute();
     } while ($stmt->rowCount() > 0);
-    
+
     return $id;
 }
 
-function incrementViews($db, $snippet_id) {
+function incrementViews($db, $snippet_id)
+{
     try {
         $query = "UPDATE code_snippets SET views = views + 1 WHERE id = :id";
         $stmt = $db->prepare($query);
@@ -290,4 +297,3 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 */
-?>
