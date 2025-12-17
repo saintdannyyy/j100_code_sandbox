@@ -1178,7 +1178,7 @@
 
     <script>
         // API Configuration
-        const API_BASE = '/api';
+        const API_BASE = './api';
 
         // Default code templates
         const templates = {
