@@ -19,8 +19,17 @@ RewriteRule ^(.*) - [R=200,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Route /snippets/{id} to snippets.php?id={id}
-RewriteRule ^snippets/([a-zA-Z0-9]+)$ snippets.php?id=$1 [L,QSA]
+# Handle API routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 
-# Route /snippets to snippets.php
-RewriteRule ^snippets$ snippets.php [L,QSA]
+# Session endpoint
+RewriteRule ^session/?$ session.php [L,QSA]
+RewriteRule ^session/(.*)$ session.php?action=$1 [L,QSA]
+
+# Snippets endpoint
+RewriteRule ^snippets/?$ snippets.php [L,QSA]
+RewriteRule ^snippets/([a-zA-Z0-9]+)/?$ snippets.php?id=$1 [L,QSA]
+
+# Execute endpoint
+RewriteRule ^execute/?$ execute.php [L,QSA]
