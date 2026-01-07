@@ -1,3 +1,33 @@
+<?php
+// =============================================================================
+// Session Initialization - Must be at the very top before any output
+// =============================================================================
+session_start();
+
+// Get user ID from URL parameter
+$urlUserId = isset($_GET['as']) ? $_GET['as'] : null;
+
+// Redirect URL for unauthenticated users
+$redirectUrl = 'https://j100coders.org/coder/codelab.php';
+
+// Initialize or validate session
+if ($urlUserId !== null && !empty($urlUserId) && $urlUserId !== 'anonymous') {
+    // User came with ?as= parameter, store in session
+    $_SESSION['user_id'] = $urlUserId;
+    $_SESSION['session_start'] = time();
+    $_SESSION['last_activity'] = time();
+} elseif (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    // User has existing session, update last activity
+    $_SESSION['last_activity'] = time();
+} else {
+    // No user ID and no session - redirect to login
+    header("Location: $redirectUrl");
+    exit();
+}
+
+// Get current user ID for JavaScript
+$currentUserId = $_SESSION['user_id'];
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1110,6 +1140,51 @@
         .error-message {
             color: var(--error-color);
         }
+
+        /* Session Info & End Session Button Styles */
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .session-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .session-user i {
+            color: var(--success-color);
+        }
+
+        .session-user-id {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .end-session-btn {
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+            background: transparent !important;
+            border: 1px solid var(--error-color) !important;
+            color: var(--error-color) !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .end-session-btn:hover {
+            background: var(--error-color) !important;
+            color: white !important;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 
@@ -1145,10 +1220,20 @@
                             <option value="html">HTML</option>
                             <option value="css">CSS</option>
                         </select>
-
                     </span>
                 </div>
                 <div class="editor-controls">
+                    <!-- Session Info -->
+                    <div class="session-info">
+                        <div class="session-user">
+                            <i class="fas fa-user-circle"></i>
+                            <span>User: <span class="session-user-id"><?php echo htmlspecialchars($currentUserId); ?></span></span>
+                        </div>
+                        <button class="end-session-btn" id="endSessionBtn" data-tooltip="End session and logout">
+                            <i class="fas fa-sign-out-alt"></i> End Session
+                        </button>
+                    </div>
+
                     <button id="newBtn" data-tooltip="Create new snippet">
                         <i class="fas fa-plus"></i> New
                     </button>
@@ -1170,7 +1255,6 @@
                     <button class="run-btn" id="runBtn" style="background-color: #0b602aff;" data-tooltip="Run code (Ctrl+Enter)">
                         <i class="fas fa-play"></i> Run
                     </button>
-
                 </div>
             </div>
 
@@ -1304,11 +1388,96 @@
     <script>
         // API Configuration
         const API_BASE = './api';
+        const REDIRECT_URL = 'https://j100coders.org/coder/codelab.php';
 
-        // Get user ID from URL parameter (?as=16)
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentUserId = urlParams.get('as') || 'anonymous';
-        console.log('Current User ID:', currentUserId);
+        // Get user ID from PHP session (injected server-side)
+        const currentUserId = '<?php echo htmlspecialchars($currentUserId); ?>';
+        console.log('Current User ID (from session):', currentUserId);
+
+        // Session Management
+        const SessionManager = {
+            // Check if session is valid
+            async validate() {
+                try {
+                    const response = await fetch(`${API_BASE}/session.php`);
+                    const data = await response.json();
+
+                    if (!data.authenticated) {
+                        this.redirectToLogin();
+                        return false;
+                    }
+                    return true;
+                } catch (error) {
+                    console.error('Session validation error:', error);
+                    return false;
+                }
+            },
+
+            // End session and redirect
+            async endSession() {
+                try {
+                    const response = await fetch(`${API_BASE}/session.php`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showNotification('Session ended. Redirecting...', 'info');
+                        setTimeout(() => {
+                            window.location.href = data.redirect || REDIRECT_URL;
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('End session error:', error);
+                    // Redirect anyway
+                    window.location.href = REDIRECT_URL;
+                }
+            },
+
+            // Redirect to login page
+            redirectToLogin() {
+                showNotification('Session expired. Redirecting to login...', 'warning');
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 1500);
+            },
+
+            // Get current user ID
+            getUserId() {
+                return currentUserId;
+            }
+        };
+
+        // End Session Button Handler
+        document.getElementById('endSessionBtn').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to end your session?\n\nAny unsaved changes will be lost.')) {
+                await SessionManager.endSession();
+            }
+        });
+
+        // Clean URL after page load (remove ?as= parameter but keep ?snippet=)
+        window.addEventListener('load', () => {
+            const url = new URL(window.location.href);
+            const snippetId = url.searchParams.get('snippet');
+
+            // Remove 'as' parameter from URL (already stored in session)
+            if (url.searchParams.has('as')) {
+                url.searchParams.delete('as');
+
+                // Keep snippet parameter if present
+                if (snippetId) {
+                    url.searchParams.set('snippet', snippetId);
+                }
+
+                // Update URL without reload
+                window.history.replaceState({}, '', url.pathname + (snippetId ? `?snippet=${snippetId}` : ''));
+            }
+        });
+
+        // Validate session periodically (every 5 minutes)
+        setInterval(() => {
+            SessionManager.validate();
+        }, 5 * 60 * 1000);
 
         // Default code templates
         const templates = {
@@ -1486,11 +1655,13 @@
                 fileItem.className = 'file-item' + (index === currentFileIndex ? ' active' : '');
                 // In renderFilesList function, replace the fileItem.innerHTML section:
                 fileItem.innerHTML = `
+
     <div class="file-name">
         <span class="file-icon">${getFileIcon(file.name)}</span>
         <span>${file.name}</span>
     </div>
     ${files.length > 1 ? `<button class="delete-file-btn" data-index="${index}"><i class="fas fa-times"></i></button>` : ''}
+
 `;
 
                 fileItem.addEventListener('click', (e) => {
@@ -2005,6 +2176,8 @@ console.log('DOM loaded and parsed');
             document.getElementById('snippetDesc').value = '';
         };
 
+        // Update the confirmSave click handler to handle authentication errors
+
         document.getElementById("confirmSave").onclick = async () => {
             const title = document.getElementById('snippetTitle').value.trim();
             if (!title) {
@@ -2022,26 +2195,34 @@ console.log('DOM loaded and parsed');
                 language: document.getElementById("lang-select").value,
                 code: editor.getValue(),
                 permissions: document.getElementById('snippetPermission').value,
-                author_id: currentUserId
+                author_id: SessionManager.getUserId()
             };
 
             try {
-                // Call your backend API
                 const response = await fetch(`${API_BASE}/snippets`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        // Add authentication header if needed
-                        // 'Authorization': 'Bearer ' + yourAuthToken
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include', // Include session cookies
                     body: JSON.stringify(snippetData)
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to save snippet');
+                const result = await response.json();
+
+                // Handle authentication errors
+                if (response.status === 401 || result.redirect) {
+                    showNotification('Session expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = result.redirect || REDIRECT_URL;
+                    }, 1500);
+                    return;
                 }
 
-                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to save snippet');
+                }
+
                 currentSnippetId = result.id;
 
                 document.getElementById('saveModal').classList.remove('show');
@@ -2051,10 +2232,10 @@ console.log('DOM loaded and parsed');
                 const shareUrl = `${window.location.origin}${window.location.pathname}?snippet=${result.id}`;
                 window.history.pushState({}, '', `?snippet=${result.id}`);
 
-                showNotification(`✓ Snippet saved successfully!`, "success");
+                showNotification('Snippet saved successfully!', "success");
 
                 document.getElementById("output").innerHTML =
-                    `<span class="success">✓ Snippet saved successfully!</span>\n\n` +
+                    `<span class="success"><i class="fas fa-check-circle"></i> Snippet saved successfully!</span>\n\n` +
                     `Title: ${title}\n` +
                     `Language: ${snippetData.language}\n` +
                     `Snippet ID: ${result.id}\n` +
@@ -2071,23 +2252,22 @@ console.log('DOM loaded and parsed');
             }
         };
 
-        // Load Modal - Show user's snippets browser
-        document.getElementById("loadBtn").onclick = async () => {
-            document.getElementById('loadModal').classList.add('show');
-            await loadUserSnippets();
-        };
-
-        document.getElementById("cancelLoad").onclick = () => {
-            document.getElementById('loadModal').classList.remove('show');
-        };
-
-        // Load user's snippets list
+        // Update loadUserSnippets to use session
         async function loadUserSnippets() {
             const listContainer = document.getElementById('snippetsList');
             listContainer.innerHTML = '<div class="loading-snippets"><i class="fas fa-spinner fa-spin"></i> Loading your snippets...</div>';
 
             try {
-                const response = await fetch(`${API_BASE}/snippets?author=${currentUserId}`);
+                const response = await fetch(`${API_BASE}/snippets`, {
+                    credentials: 'include' // Include session cookies
+                });
+
+                // Handle authentication errors
+                if (response.status === 401) {
+                    SessionManager.redirectToLogin();
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (data.snippets && data.snippets.length > 0) {
@@ -2147,41 +2327,24 @@ console.log('DOM loaded and parsed');
             }
         }
 
-        // Helper functions for snippet browser
-        function getLanguageIcon(lang) {
-            const icons = {
-                'javascript': 'js',
-                'python': 'python',
-                'java': 'java',
-                'html': 'html5',
-                'css': 'css3-alt',
-                'cpp': 'code',
-                'sql': 'database',
-                'php': 'php'
-            };
-            return icons[lang] || 'file-code';
-        }
-
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
+        // Update deleteSnippet to use session
         async function deleteSnippet(snippetId) {
             try {
                 const response = await fetch(`${API_BASE}/snippets/${snippetId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include'
                 });
+
+                if (response.status === 401) {
+                    SessionManager.redirectToLogin();
+                    return;
+                }
+
+                if (response.status === 403) {
+                    showNotification('You can only delete your own snippets', 'error');
+                    return;
+                }
+
                 if (response.ok) {
                     showNotification('Snippet deleted', 'success');
                 } else {
