@@ -3,6 +3,9 @@
 // api/snippets.php - Main API Endpoint for CodeBin
 // =============================================================================
 
+// Include session management
+require_once 'session.php';
+
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, GET, DELETE, OPTIONS");
@@ -62,7 +65,7 @@ if ($request_method === 'POST') {
         deleteSnippet($db, $snippet_id);
     } else {
         http_response_code(400);
-        echo json_encode(["error" => "Snippet ID required"]);
+        echo json_encode(["error" => "Snippet ID required to take action"]);
     }
 } else {
     http_response_code(405);
@@ -76,64 +79,58 @@ function createSnippet($db)
 {
     $data = json_decode(file_get_contents("php://input"));
 
-    // Validation
-    if (empty($data->title) || empty($data->code) || empty($data->language)) {
+    if (empty($data->title) || empty($data->code)) {
         http_response_code(400);
-        echo json_encode(["error" => "Title, code, and language are required"]);
+        echo json_encode(["error" => "Title and code are required"]);
         return;
     }
 
-    // Generate unique ID
-    $snippet_id = generateUniqueId($db);
-
-    // Get current timestamp
-    $created_at = date('Y-m-d H:i:s');
-
-    // Default values
-    $description = isset($data->description) ? $data->description : '';
-    $permissions = isset($data->permissions) ? $data->permissions : 'public';
-    $author_id = isset($data->author_id) ? $data->author_id : 'anonymous';
-
-    // Validate permissions
-    if (!in_array($permissions, ['public', 'unlisted', 'private'])) {
-        $permissions = 'public';
+    // Get user ID from session first, then fall back to request data
+    $author_id = getCurrentUserId();
+    if (!$author_id && isset($data->author_id)) {
+        $author_id = $data->author_id;
     }
 
-    try {
-        $query = "INSERT INTO code_snippets 
-                  (id, title, description, language, code, permissions, author_id, created_at, updated_at) 
-                  VALUES 
-                  (:id, :title, :description, :language, :code, :permissions, :author_id, :created_at, :updated_at)";
+    if (!$author_id || $author_id === 'anonymous') {
+        http_response_code(401);
+        echo json_encode([
+            "error" => "Authentication required",
+            "redirect" => REDIRECT_URL
+        ]);
+        return;
+    }
 
-        $stmt = $db->prepare($query);
+    $id = generateUniqueId($db);
 
-        $stmt->bindParam(":id", $snippet_id);
-        $stmt->bindParam(":title", $data->title);
-        $stmt->bindParam(":description", $description);
-        $stmt->bindParam(":language", $data->language);
-        $stmt->bindParam(":code", $data->code);
-        $stmt->bindParam(":permissions", $permissions);
-        $stmt->bindParam(":author_id", $author_id);
-        $stmt->bindParam(":created_at", $created_at);
-        $stmt->bindParam(":updated_at", $created_at);
+    $query = "INSERT INTO code_snippets (id, title, description, language, code, permissions, author_id) 
+              VALUES (:id, :title, :description, :language, :code, :permissions, :author_id)";
 
-        if ($stmt->execute()) {
-            http_response_code(201);
-            echo json_encode([
-                "message" => "Snippet created successfully",
-                "id" => $snippet_id,
-                "title" => $data->title,
-                "language" => $data->language,
-                "permissions" => $permissions,
-                "created_at" => $created_at
-            ]);
-        } else {
-            http_response_code(500);
-            echo json_encode(["error" => "Unable to create snippet"]);
-        }
-    } catch (PDOException $e) {
+    $stmt = $db->prepare($query);
+
+    $title = htmlspecialchars(strip_tags($data->title));
+    $description = isset($data->description) ? htmlspecialchars(strip_tags($data->description)) : '';
+    $language = isset($data->language) ? $data->language : 'plaintext';
+    $code = $data->code;
+    $permissions = isset($data->permissions) ? $data->permissions : 'public';
+
+    $stmt->bindParam(':id', $id);
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':description', $description);
+    $stmt->bindParam(':language', $language);
+    $stmt->bindParam(':code', $code);
+    $stmt->bindParam(':permissions', $permissions);
+    $stmt->bindParam(':author_id', $author_id);
+
+    if ($stmt->execute()) {
+        http_response_code(201);
+        echo json_encode([
+            "message" => "Snippet created successfully",
+            "id" => $id,
+            "author_id" => $author_id
+        ]);
+    } else {
         http_response_code(500);
-        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+        echo json_encode(["error" => "Failed to create snippet"]);
     }
 }
 
@@ -142,41 +139,30 @@ function createSnippet($db)
 // =============================================================================
 function getSnippet($db, $snippet_id)
 {
-    // Sanitize input - only allow alphanumeric
-    $snippet_id = preg_replace('/[^a-zA-Z0-9]/', '', $snippet_id);
+    $query = "SELECT * FROM code_snippets WHERE id = :id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $snippet_id);
+    $stmt->execute();
 
-    try {
-        $query = "SELECT * FROM code_snippets WHERE id = :id LIMIT 1";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":id", $snippet_id);
-        $stmt->execute();
+    $snippet = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($snippet) {
+        // Check permissions
+        $currentUserId = getCurrentUserId();
 
-            // Increment view count
-            incrementViews($db, $snippet_id);
-
-            http_response_code(200);
-            echo json_encode([
-                "id" => $row['id'],
-                "title" => $row['title'],
-                "description" => $row['description'],
-                "language" => $row['language'],
-                "code" => $row['code'],
-                "permissions" => $row['permissions'],
-                "author_id" => $row['author_id'],
-                "created_at" => $row['created_at'],
-                "updated_at" => $row['updated_at'],
-                "views" => (int)$row['views'] + 1
-            ]);
-        } else {
-            http_response_code(404);
-            echo json_encode(["error" => "Snippet not found"]);
+        if ($snippet['permissions'] === 'private' && $snippet['author_id'] !== $currentUserId) {
+            http_response_code(403);
+            echo json_encode(["error" => "Access denied - private snippet"]);
+            return;
         }
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+
+        // Increment views
+        incrementViews($db, $snippet_id);
+
+        echo json_encode($snippet);
+    } else {
+        http_response_code(404);
+        echo json_encode(["error" => "Snippet not found"]);
     }
 }
 
@@ -185,68 +171,85 @@ function getSnippet($db, $snippet_id)
 // =============================================================================
 function listSnippets($db)
 {
-    try {
-        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 50;
-        $offset = ($page - 1) * $limit;
-        $author_id = isset($_GET['author']) ? $_GET['author'] : null;
+    // Get user ID from session first, then query param
+    $author_id = getCurrentUserId();
+    if (!$author_id && isset($_GET['author'])) {
+        $author_id = $_GET['author'];
+    }
 
-        // If author_id provided, show all their snippets (including private/unlisted)
-        // Otherwise, only show public snippets
-        if ($author_id !== null && !empty($author_id)) {
-            $query = "SELECT id, title, description, language, author_id, created_at, updated_at, views, permissions 
-                      FROM code_snippets 
-                      WHERE author_id = :author_id 
-                      ORDER BY updated_at DESC 
-                      LIMIT :limit OFFSET :offset";
+    if ($author_id) {
+        // List user's snippets
+        $query = "SELECT id, title, description, language, permissions, created_at, views 
+                  FROM code_snippets 
+                  WHERE author_id = :author_id 
+                  ORDER BY created_at DESC";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(':author_id', $author_id);
+    } else {
+        // List public snippets only
+        $query = "SELECT id, title, description, language, author_id, created_at, views 
+                  FROM code_snippets 
+                  WHERE permissions = 'public' 
+                  ORDER BY created_at DESC 
+                  LIMIT 50";
+        $stmt = $db->prepare($query);
+    }
 
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":author_id", $author_id);
-            $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
-            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
-            $stmt->execute();
+    $stmt->execute();
+    $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode([
+        "snippets" => $snippets,
+        "count" => count($snippets),
+        "author_id" => $author_id
+    ]);
+}
 
-            // Get total count for this author
-            $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE author_id = :author_id";
-            $countStmt = $db->prepare($countQuery);
-            $countStmt->bindParam(":author_id", $author_id);
-            $countStmt->execute();
-            $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
-        } else {
-            // Public listing
-            $query = "SELECT id, title, description, language, author_id, created_at, views 
-                      FROM code_snippets 
-                      WHERE permissions = 'public' 
-                      ORDER BY created_at DESC 
-                      LIMIT :limit OFFSET :offset";
+// =============================================================================
+// DELETE SNIPPET
+// =============================================================================
+function deleteSnippet($db, $snippet_id)
+{
+    // Verify ownership
+    $currentUserId = getCurrentUserId();
 
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":limit", $limit, PDO::PARAM_INT);
-            $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
-            $stmt->execute();
-
-            $snippets = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Get total count
-            $countQuery = "SELECT COUNT(*) as total FROM code_snippets WHERE permissions = 'public'";
-            $countStmt = $db->prepare($countQuery);
-            $countStmt->execute();
-            $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
-        }
-
-        http_response_code(200);
+    if (!$currentUserId) {
+        http_response_code(401);
         echo json_encode([
-            "snippets" => $snippets,
-            "total" => $total,
-            "page" => $page,
-            "limit" => $limit,
-            "total_pages" => ceil($total / $limit)
+            "error" => "Authentication required",
+            "redirect" => REDIRECT_URL
         ]);
-    } catch (PDOException $e) {
+        return;
+    }
+
+    // Check if snippet exists and belongs to user
+    $checkQuery = "SELECT author_id FROM code_snippets WHERE id = :id";
+    $checkStmt = $db->prepare($checkQuery);
+    $checkStmt->bindParam(':id', $snippet_id);
+    $checkStmt->execute();
+    $snippet = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$snippet) {
+        http_response_code(404);
+        echo json_encode(["error" => "Snippet not found"]);
+        return;
+    }
+
+    if ($snippet['author_id'] !== $currentUserId) {
+        http_response_code(403);
+        echo json_encode(["error" => "You can only delete your own snippets"]);
+        return;
+    }
+
+    $query = "DELETE FROM code_snippets WHERE id = :id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $snippet_id);
+
+    if ($stmt->execute()) {
+        echo json_encode(["message" => "Snippet deleted successfully"]);
+    } else {
         http_response_code(500);
-        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
+        echo json_encode(["error" => "Failed to delete snippet"]);
     }
 }
 
@@ -256,62 +259,27 @@ function listSnippets($db)
 function generateUniqueId($db)
 {
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $id_length = 8;
+    $length = 8;
 
     do {
         $id = '';
-        for ($i = 0; $i < $id_length; $i++) {
+        for ($i = 0; $i < $length; $i++) {
             $id .= $characters[random_int(0, strlen($characters) - 1)];
         }
 
-        // Check if ID exists
         $query = "SELECT id FROM code_snippets WHERE id = :id";
         $stmt = $db->prepare($query);
-        $stmt->bindParam(":id", $id);
+        $stmt->bindParam(':id', $id);
         $stmt->execute();
-    } while ($stmt->rowCount() > 0);
+    } while ($stmt->fetch());
 
     return $id;
 }
 
 function incrementViews($db, $snippet_id)
 {
-    try {
-        $query = "UPDATE code_snippets SET views = views + 1 WHERE id = :id";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":id", $snippet_id);
-        $stmt->execute();
-    } catch (PDOException $e) {
-        // Silently fail - don't break the main request
-        error_log("Error incrementing views: " . $e->getMessage());
-    }
-}
-
-// =============================================================================
-// DELETE SNIPPET
-// =============================================================================
-function deleteSnippet($db, $snippet_id)
-{
-    // Sanitize input
-    $snippet_id = preg_replace('/[^a-zA-Z0-9]/', '', $snippet_id);
-
-    try {
-        $query = "DELETE FROM code_snippets WHERE id = :id";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":id", $snippet_id);
-
-        if ($stmt->execute() && $stmt->rowCount() > 0) {
-            http_response_code(200);
-            echo json_encode([
-                "message" => "Snippet deleted successfully",
-                "id" => $snippet_id
-            ]);
-        } else {
-            http_response_code(404);
-            echo json_encode(["error" => "Snippet not found"]);
-        }
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(["error" => "Database error: " . $e->getMessage()]);
-    }
+    $query = "UPDATE code_snippets SET views = views + 1 WHERE id = :id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $snippet_id);
+    $stmt->execute();
 }
