@@ -8,7 +8,7 @@
     <title>J100 Coding Sandbox</title>
     <style>
         :root {
-            --primary-color: #00d4ff;
+            --primary-color: #3966a7;
             --secondary-color: #0099ff;
             --accent-color: #667eea;
             --bg-dark: #0f0f23;
@@ -35,7 +35,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a3e 100%);
+            background-color: #000;
             color: var(--text-primary);
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             height: 100vh;
@@ -55,20 +55,6 @@
             background: radial-gradient(circle at 50% 0%, rgba(0, 212, 255, 0.1), transparent 70%);
             pointer-events: none;
             z-index: 0;
-        }
-
-        header {
-            background: var(--bg-card);
-            backdrop-filter: blur(20px);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            position: relative;
-            z-index: 10;
-            animation: slideDown 0.4s ease;
         }
 
         @keyframes slideDown {
@@ -146,11 +132,11 @@
 
         select,
         button {
-            padding: 10px 18px;
-            background: rgba(0, 153, 255, 0.1);
-            color: var(--text-primary);
-            border: 1px solid var(--secondary-color);
-            border-radius: 8px;
+            padding: 10px 10px;
+            background: transparent;
+            border: none;
+            border-radius: 5%;
+            color: white;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
@@ -178,7 +164,7 @@
         }
 
         select {
-            background: rgba(42, 42, 62, 0.8);
+            background: var(--primary-color);
         }
 
         button {
@@ -188,7 +174,7 @@
         }
 
         button:hover {
-            background: rgba(0, 153, 255, 0.2);
+            background: var(--secondary-color);
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 153, 255, 0.4);
             border-color: var(--primary-color);
@@ -212,8 +198,7 @@
         }
 
         .run-btn {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border: none;
+
             color: white;
             position: relative;
             overflow: hidden;
@@ -387,17 +372,27 @@
         }
 
         .editor-tabs {
-            background: rgba(42, 42, 62, 0.8);
+            background: black;
             padding: 8px 16px;
             border-bottom: 1px solid #3a3a52;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 8px;
+        }
+
+        .editor-controls {
+            font-size: larger;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-left: auto;
         }
 
         .editor-tab {
             padding: 6px 12px;
-            background: rgba(0, 153, 255, 0.1);
+            background: var(--primary-color);
             border-radius: 4px;
             font-size: 13px;
             cursor: default;
@@ -708,14 +703,11 @@
         }
 
         .notification.success {
-            background: #4ade80;
+            background: #0f9641ff;
         }
 
         .project-mode-toggle {
-            background: rgba(0, 153, 255, 0.1);
-            border: 1px solid #0099ff;
             padding: 8px 14px;
-            border-radius: 6px;
             font-size: 13px;
             display: flex;
             align-items: center;
@@ -724,8 +716,7 @@
         }
 
         .project-mode-toggle:hover:not(.active) {
-            background: rgba(0, 153, 255, 0.2);
-            border-color: var(--primary-color);
+            background: var(--primary-color);
         }
 
         .project-mode-toggle.active {
@@ -757,9 +748,9 @@
         [data-tooltip]::after {
             content: attr(data-tooltip);
             position: absolute;
-            bottom: 100%;
+            top: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-8px);
+            transform: translateX(-50%) translateY(8px);
             background: rgba(0, 0, 0, 0.9);
             color: white;
             padding: 6px 12px;
@@ -775,11 +766,11 @@
         [data-tooltip]::before {
             content: '';
             position: absolute;
-            bottom: 100%;
+            top: 100%;
             left: 50%;
-            transform: translateX(-50%) translateY(-2px);
+            transform: translateX(-50%) translateY(2px);
             border: 4px solid transparent;
-            border-top-color: rgba(0, 0, 0, 0.9);
+            border-bottom-color: rgba(0, 0, 0, 0.9);
             opacity: 0;
             pointer-events: none;
             transition: var(--transition-fast);
@@ -931,6 +922,17 @@
         }
 
         @media (max-width: 768px) {
+            .editor-tabs {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .editor-controls {
+                width: 100%;
+                justify-content: flex-start;
+                margin-left: 0;
+            }
+
             header {
                 padding: 12px 16px;
             }
@@ -1112,44 +1114,6 @@
 </head>
 
 <body>
-
-    <header>
-        <div class="logo">
-            <span class="logo-text"> Coding SandBox</span>
-        </div>
-        <div id="controls">
-            <button class="project-mode-toggle" id="projectModeBtn" data-tooltip="Toggle multi-file project mode">
-                <i class="fas fa-folder"></i> Project Mode
-            </button>
-            <select id="lang-select" data-tooltip="Select programming language">
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="cpp">C++</option>
-                <option value="java">Java</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-            </select>
-            <button class="toggle-preview-btn" id="togglePreviewBtn" style="display: none;" data-tooltip="Toggle live preview">
-                <i class="fas fa-eye"></i> Preview
-            </button>
-            <button class="run-btn" id="runBtn" data-tooltip="Run code (Ctrl+Enter)">
-                <i class="fas fa-play"></i> Run
-            </button>
-            <button id="copyBtn" data-tooltip="Copy to clipboard">
-                <i class="fas fa-copy"></i> Copy
-            </button>
-            <button id="saveBtn" data-tooltip="Save snippet (Ctrl+S)">
-                <i class="fas fa-save"></i> Save
-            </button>
-            <button id="loadBtn" data-tooltip="Load snippet">
-                <i class="fas fa-folder-open"></i> Load
-            </button>
-            <button id="newBtn" data-tooltip="Create new snippet">
-                <i class="fas fa-plus"></i> New
-            </button>
-        </div>
-    </header>
-
     <div class="main-content">
         <!-- Sidebar for file management -->
         <div class="sidebar" id="sidebar" style="display: none;">
@@ -1170,6 +1134,43 @@
             <div class="editor-tabs" id="editorTabs">
                 <div class="editor-tab">
                     <span id="currentFileName">untitled</span>
+                </div>
+                <div>
+                    <span>Language:
+                        <select id="lang-select" data-tooltip="Select programming language">
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="cpp">C++</option>
+                            <option value="java">Java</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                        </select>
+
+                    </span>
+                </div>
+                <div class="editor-controls">
+                    <button id="newBtn" data-tooltip="Create new snippet">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                    <button id="copyBtn" data-tooltip="Copy to clipboard">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button id="saveBtn" data-tooltip="Save snippet (Ctrl+S)">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button id="loadBtn" data-tooltip="Load snippet">
+                        <i class="fas fa-folder-open"></i> Load
+                    </button>
+                    <button class="project-mode-toggle" id="projectModeBtn" data-tooltip="Toggle multi-file project mode">
+                        <i class="fas fa-folder"></i> Web Mode
+                    </button>
+                    <button class="toggle-preview-btn" id="togglePreviewBtn" style="display: none;" data-tooltip="Toggle live preview">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <button class="run-btn" id="runBtn" style="background-color: #0b602aff;" data-tooltip="Run code (Ctrl+Enter)">
+                        <i class="fas fa-play"></i> Run
+                    </button>
+
                 </div>
             </div>
 
