@@ -1,4 +1,4 @@
-# 🧪 J100 Coding Sandbox
+# J100 Coding Sandbox
 
 <div align="center">
 
@@ -6,28 +6,28 @@
 
 Write, run, save, and share code snippets in 11+ programming languages
 
-[Features](#-features) • [Getting Started](#-getting-started) • [API Documentation](#-api-documentation) • [Architecture](#%EF%B8%8F-architecture)
+[Features](#features) • [Getting Started](#getting-started) • [API Documentation](#api-documentation) • [Architecture](#architecture)
 
 </div>
 
 ---
 
-## 🎯 Overview
+## Overview
 
 **J100 Coding Sandbox** (also known as **CodeBin**) is a web-based code editor and execution platform similar to CodePen, JSFiddle, or Repl.it. It provides a complete development environment in your browser with:
 
-- 💻 **Monaco Editor** (VS Code's editor engine)
-- 🚀 **Real-time code execution** in a sandboxed environment
-- 📁 **Multi-file project support** with live preview
-- 💾 **Snippet management** (save, load, share)
-- 🎨 **Modern dark theme** with smooth animations
-- ⌨️ **Keyboard shortcuts** for productivity
+- **Monaco Editor** (VS Code's editor engine)
+- **Real-time code execution** in a sandboxed environment
+- **Multi-file project support** with live preview
+- **Snippet management** (save, load, share)
+- **Modern dark theme** with smooth animations
+- **Keyboard shortcuts** for productivity
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎨 Editor Experience
+### Editor Experience
 
 - **Monaco Editor** with full VS Code features:
   - Syntax highlighting for 11+ languages
@@ -37,7 +37,7 @@ Write, run, save, and share code snippets in 11+ programming languages
   - Code folding
   - Minimap navigation
 
-### 🔥 Code Execution
+### Code Execution
 
 - **Sandboxed execution** via Piston API
 - **Instant results** in output console
@@ -56,7 +56,7 @@ Write, run, save, and share code snippets in 11+ programming languages
   - Go 1.16.2
   - Rust 1.68.2
 
-### 📁 Project Mode
+### Project Mode
 
 - **VS Code-like file tree** in sidebar
 - **Multi-file management**:
@@ -66,19 +66,19 @@ Write, run, save, and share code snippets in 11+ programming languages
 - **Live preview** for HTML/CSS/JS projects
 - **Auto-refresh** with smart debouncing
 
-### 💾 Snippet Management
+### Snippet Management
 
 - **Save snippets** with title and description
 - **Three visibility levels**:
-  - 🌍 Public (visible to everyone)
-  - 🔗 Unlisted (accessible via link)
-  - 🔒 Private (your eyes only)
+  - **Public** (visible to everyone)
+  - **Unlisted** (accessible via link)
+  - **Private** (your eyes only)
 - **Shareable URLs** (e.g., `?snippet=abc123XY`)
 - **View counter** for tracking popularity
 - **My Snippets** browser with search
 - **Quick load** from your library
 
-### ⌨️ Keyboard Shortcuts
+### Keyboard Shortcuts
 
 | Shortcut     | Action               |
 | ------------ | -------------------- |
@@ -91,7 +91,7 @@ Write, run, save, and share code snippets in 11+ programming languages
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Main Editor Interface
 
@@ -151,7 +151,7 @@ Write, run, save, and share code snippets in 11+ programming languages
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -193,7 +193,7 @@ Write, run, save, and share code snippets in 11+ programming languages
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -259,7 +259,7 @@ Write, run, save, and share code snippets in 11+ programming languages
 
 ---
 
-## 📚 API Documentation
+## API Documentation
 
 ### Base URL
 
@@ -386,7 +386,7 @@ Delete a snippet.
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 ### Table: `code_snippets`
 
@@ -412,7 +412,7 @@ Delete a snippet.
 
 ---
 
-## 🎨 User Interface
+## User Interface
 
 ### Main Editor View
 
@@ -439,7 +439,7 @@ Delete a snippet.
 
 ---
 
-## 🔄 User Workflows
+## User Workflows
 
 ### Scenario 1: Quick Code Execution
 
@@ -478,9 +478,9 @@ Delete a snippet.
 
 ---
 
-## 🔐 Security
+## Security
 
-### Current Protections ✅
+### Current Protections
 
 - **Sandboxed execution** via Piston API (no local code execution)
 - **SQL injection prevention** (PDO prepared statements)
@@ -488,7 +488,7 @@ Delete a snippet.
 - **CORS headers** configured
 - **Input validation** on API endpoints
 
-### Known Limitations ⚠️
+### Known Limitations
 
 - **No real authentication** - Uses URL parameter `?as=16` for user ID
 - **No rate limiting** - API can be abused
@@ -512,7 +512,7 @@ Delete a snippet.
 
 ---
 
-## 🚀 Technology Stack
+## Technology Stack
 
 | Layer              | Technology                     |
 | ------------------ | ------------------------------ |
@@ -527,7 +527,7 @@ Delete a snippet.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ide/
@@ -545,7 +545,7 @@ ide/
 
 ---
 
-## 🎯 Roadmap / Future Enhancements
+## Roadmap / Future Enhancements
 
 ### Authentication & Users
 
@@ -592,7 +592,7 @@ ide/
 
 ---
 
-## 🐛 Known Issues
+## Known Issues
 
 1. **Monaco Editor** may be slow on older browsers
 2. **Project Mode** file deletion requires page refresh
@@ -602,7 +602,7 @@ ide/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! To contribute:
 
@@ -622,20 +622,20 @@ Contributions are welcome! To contribute:
 
 ---
 
-## 📊 Browser Support
+## Browser Support
 
 | Browser | Supported | Notes          |
 | ------- | --------- | -------------- |
-| Chrome  | ✅ Yes    | Recommended    |
-| Firefox | ✅ Yes    | Recommended    |
-| Edge    | ✅ Yes    | Chromium-based |
-| Safari  | ✅ Yes    | 14+            |
-| Opera   | ✅ Yes    |                |
-| IE 11   | ❌ No     | Not supported  |
+| Chrome  | Yes       | Recommended    |
+| Firefox | Yes       | Recommended    |
+| Edge    | Yes       | Chromium-based |
+| Safari  | Yes       | 14+            |
+| Opera   | Yes       |                |
+| IE 11   | No        | Not supported  |
 
 ---
 
-## 📝 License
+## License
 
 This project is currently **proprietary/internal use**.
 
@@ -647,7 +647,7 @@ For open source release, consider:
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Monaco Editor** - Microsoft's excellent code editor
 - **Piston API** - Free code execution service by Engineer Man
@@ -656,7 +656,7 @@ For open source release, consider:
 
 ---
 
-## 📧 Contact & Support
+## Contact & Support
 
 **Project Maintainer**: [Your Name]  
 **Email**: [your.email@example.com]  
@@ -666,8 +666,8 @@ For open source release, consider:
 
 <div align="center">
 
-**⭐ If you find this project useful, please consider giving it a star!**
+**If you find this project useful, please consider giving it a star!**
 
-Made with ❤️ by the J100 Team
+Made with love by the J100 Team
 
 </div>
