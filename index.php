@@ -6,6 +6,7 @@ session_start();
 
 // Get user ID from URL parameter
 $urlUserId = isset($_GET['as']) ? $_GET['as'] : null;
+$snippetId = isset($_GET['snippet']) ? $_GET['snippet'] : null;
 
 // Redirect URL for unauthenticated users
 $redirectUrl = 'https://j100coders.org/coder/codelab.php';
@@ -1392,7 +1393,12 @@ $currentUserId = $_SESSION['user_id'];
 
         // Get user ID from PHP session (injected server-side)
         const currentUserId = '<?php echo htmlspecialchars($currentUserId); ?>';
+
+        // Get snippet ID from PHP (injected server-side) - FIXED: Define this early
+        const initialSnippetId = <?php echo $snippetId ? "'" . htmlspecialchars($snippetId) . "'" : 'null'; ?>;
+
         console.log('Current User ID (from session):', currentUserId);
+        console.log('Initial Snippet ID:', initialSnippetId);
 
         // Session Management
         const SessionManager = {
@@ -1458,19 +1464,19 @@ $currentUserId = $_SESSION['user_id'];
         // Clean URL after page load (remove ?as= parameter but keep ?snippet=)
         window.addEventListener('load', () => {
             const url = new URL(window.location.href);
-            const snippetId = url.searchParams.get('snippet');
+            const snippetParam = url.searchParams.get('snippet');
 
             // Remove 'as' parameter from URL (already stored in session)
             if (url.searchParams.has('as')) {
                 url.searchParams.delete('as');
 
                 // Keep snippet parameter if present
-                if (snippetId) {
-                    url.searchParams.set('snippet', snippetId);
+                if (snippetParam) {
+                    url.searchParams.set('snippet', snippetParam);
                 }
 
                 // Update URL without reload
-                window.history.replaceState({}, '', url.pathname + (snippetId ? `?snippet=${snippetId}` : ''));
+                window.history.replaceState({}, '', url.pathname + (snippetParam ? `?snippet=${snippetParam}` : ''));
             }
         });
 
@@ -1514,7 +1520,6 @@ $currentUserId = $_SESSION['user_id'];
             if (projectMode && files.length > 0) {
                 files[currentFileIndex].language = lang;
                 files[currentFileIndex].content = templates[lang];
-
             }
 
             // Show/hide preview for HTML/CSS/JS
@@ -1526,18 +1531,123 @@ $currentUserId = $_SESSION['user_id'];
         // Load Monaco
         require.config({
             paths: {
-                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs'
+                'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'
             }
         });
-
-        // require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
 
         let editor = null;
         let currentSnippetId = null;
         let editorReady = false;
 
+        // Helper functions - Define BEFORE Monaco loads
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        function getLanguageIcon(lang) {
+            const icons = {
+                'python': 'snake',
+                'javascript': 'js',
+                'java': 'coffee',
+                'cpp': 'code',
+                'c': 'code',
+                'html': 'html5',
+                'css': 'css3-alt',
+                'sql': 'database',
+                'php': 'php',
+                'ruby': 'gem',
+                'go': 'code',
+                'rust': 'cog',
+                'typescript': 'code'
+            };
+            return icons[lang] || 'file-code';
+        }
+
+        // Show notification - Define early
+        function showNotification(message, type = 'info') {
+            const icons = {
+                'success': '<i class="fas fa-check-circle"></i>',
+                'error': '<i class="fas fa-exclamation-circle"></i>',
+                'warning': '<i class="fas fa-exclamation-triangle"></i>',
+                'info': '<i class="fas fa-info-circle"></i>'
+            };
+            const icon = icons[type] || '<i class="fas fa-info-circle"></i>';
+
+            const notif = document.getElementById('notification');
+            notif.innerHTML = `${icon} ${message}`;
+            notif.className = 'notification show ' + type;
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+
+        // Load snippet function - Define before Monaco
+        async function loadSnippet(snippetId) {
+            if (!editor) {
+                console.error('Editor not ready, retrying in 500ms...');
+                setTimeout(() => loadSnippet(snippetId), 500);
+                return;
+            }
+
+            const outputDiv = document.getElementById("output");
+            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Loading snippet...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/snippets/${snippetId}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Snippet not found');
+                }
+
+                const snippet = await response.json();
+
+                // Set the editor content
+                editor.setValue(snippet.code);
+
+                // Set the language
+                const langSelect = document.getElementById('lang-select');
+                if (langSelect.querySelector(`option[value="${snippet.language}"]`)) {
+                    langSelect.value = snippet.language;
+                    monaco.editor.setModelLanguage(editor.getModel(), snippet.language);
+                }
+
+                currentSnippetId = snippet.id;
+
+                outputDiv.innerHTML =
+                    `<span class="success"><i class="fas fa-check-circle"></i> Snippet loaded successfully!</span>\n\n` +
+                    `Title: ${escapeHtml(snippet.title)}\n` +
+                    `Language: ${snippet.language}\n` +
+                    `Author: ${snippet.author_id}\n` +
+                    `Created: ${new Date(snippet.created_at).toLocaleString()}\n` +
+                    (snippet.description ? `\nDescription: ${escapeHtml(snippet.description)}` : '');
+
+                showNotification('Snippet loaded!', 'success');
+
+            } catch (error) {
+                console.error('Load error:', error);
+                outputDiv.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Failed to load snippet. Check the ID and try again.</span>';
+                showNotification('Failed to load snippet', 'error');
+            }
+        }
+
+        // Initialize Monaco Editor
         require(["vs/editor/editor.main"], function() {
             try {
+                console.log('Monaco Editor loading...');
+
                 editor = monaco.editor.create(document.getElementById("editor"), {
                     value: templates[document.getElementById("lang-select").value],
                     language: document.getElementById("lang-select").value,
@@ -1563,21 +1673,26 @@ $currentUserId = $_SESSION['user_id'];
                     content: templates[document.getElementById("lang-select").value]
                 }];
 
+                editorReady = true;
+                console.log('Monaco Editor initialized successfully');
+
                 setTimeout(() => {
                     editor.focus();
-                    editorReady = true;
-                    console.log('Monaco Editor initialized successfully');
+
+                    // FIXED: Load snippet if ID is provided (using PHP-injected value)
+                    if (initialSnippetId) {
+                        loadSnippet(initialSnippetId);
+                    }
+
+                    // Setup auto-update for preview
+                    setupPreviewAutoUpdate();
                 }, 100);
 
-                // Check URL for snippet ID (reuse urlParams from top-level)
-                const snippetIdParam = urlParams.get('snippet');
-                if (snippetIdParam) {
-                    loadSnippet(snippetIdParam);
-                }
             } catch (error) {
                 console.error('Monaco Editor initialization error:', error);
                 document.getElementById('output').innerHTML =
-                    '<span class="error">Error loading editor. Please refresh the page.</span>';
+                    `<span class="error"><i class="fas fa-exclamation-circle"></i> Error loading editor: ${error.message}</span>\n` +
+                    '<span class="info">Please refresh the page or check browser console for details.</span>';
             }
         });
 
@@ -2060,19 +2175,20 @@ console.log('DOM loaded and parsed');
             }
 
             const lang = document.getElementById("lang-select").value;
+            const template = templates[lang] || '';
 
             if (projectMode) {
                 // Reset to single file in project mode
                 files = [{
                     name: 'index.' + (lang === 'javascript' ? 'js' : lang),
                     language: lang,
-                    content: templates[lang]
+                    content: template
                 }];
                 currentFileIndex = 0;
                 renderFilesList();
             }
 
-            editor.setValue(templates[lang]);
+            editor.setValue(template);
             currentSnippetId = null;
             document.getElementById("output").textContent = "New snippet created. Ready to run...";
             window.history.pushState({}, '', window.location.pathname);
@@ -2196,6 +2312,7 @@ console.log('DOM loaded and parsed');
                 code: editor.getValue(),
                 permissions: document.getElementById('snippetPermission').value,
                 author_id: SessionManager.getUserId()
+
             };
 
             try {
@@ -2357,15 +2474,18 @@ console.log('DOM loaded and parsed');
 
         // Load snippet function
         async function loadSnippet(snippetId) {
+            if (!editor) {
+                console.error('Editor not ready, retrying in 500ms...');
+                setTimeout(() => loadSnippet(snippetId), 500);
+                return;
+            }
+
             const outputDiv = document.getElementById("output");
-            outputDiv.innerHTML = '<span class="loading">⟳ Loading snippet...</span>';
+            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Loading snippet...</span>';
 
             try {
                 const response = await fetch(`${API_BASE}/snippets/${snippetId}`, {
-                    headers: {
-                        // Add authentication header if needed
-                        // 'Authorization': 'Bearer ' + yourAuthToken
-                    }
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {
@@ -2379,25 +2499,26 @@ console.log('DOM loaded and parsed');
 
                 // Set the language
                 const langSelect = document.getElementById('lang-select');
-                langSelect.value = snippet.language;
-                monaco.editor.setModelLanguage(editor.getModel(), snippet.language);
+                if (langSelect.querySelector(`option[value="${snippet.language}"]`)) {
+                    langSelect.value = snippet.language;
+                    monaco.editor.setModelLanguage(editor.getModel(), snippet.language);
+                }
 
                 currentSnippetId = snippet.id;
-                window.history.pushState({}, '', `?snippet=${snippet.id}`);
 
                 outputDiv.innerHTML =
-                    `<span class="success">✓ Snippet loaded successfully!</span>\n\n` +
-                    `Title: ${snippet.title}\n` +
+                    `<span class="success"><i class="fas fa-check-circle"></i> Snippet loaded successfully!</span>\n\n` +
+                    `Title: ${escapeHtml(snippet.title)}\n` +
                     `Language: ${snippet.language}\n` +
                     `Author: ${snippet.author_id}\n` +
                     `Created: ${new Date(snippet.created_at).toLocaleString()}\n` +
-                    (snippet.description ? `\nDescription: ${snippet.description}` : '');
+                    (snippet.description ? `\nDescription: ${escapeHtml(snippet.description)}` : '');
 
-                showNotification('✓ Snippet loaded!', 'success');
+                showNotification('Snippet loaded!', 'success');
 
             } catch (error) {
                 console.error('Load error:', error);
-                outputDiv.innerHTML = '<span class="error">✗ Failed to load snippet. Check the ID and try again.</span>';
+                outputDiv.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Failed to load snippet. Check the ID and try again.</span>';
                 showNotification('Failed to load snippet', 'error');
             }
         }
