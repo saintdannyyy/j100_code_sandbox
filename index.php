@@ -2031,6 +2031,16 @@ console.log('DOM loaded and parsed');
             showNotification(`Added ${filename}`, 'success');
         });
 
+        // Load Modal
+        document.getElementById("loadBtn").onclick = () => {
+            document.getElementById('loadModal').classList.add('show');
+            loadUserSnippets();
+        };
+
+        document.getElementById("cancelLoad").onclick = () => {
+            document.getElementById('loadModal').classList.remove('show');
+        };
+
         // Toggle Preview
         document.getElementById('togglePreviewBtn').addEventListener('click', function() {
             const previewContainer = document.getElementById('previewContainer');
@@ -2168,6 +2178,16 @@ console.log('DOM loaded and parsed');
             document.getElementById("output").textContent = "Output cleared. Ready to run...";
         };
 
+        // Load Modal
+        document.getElementById("loadBtn").onclick = () => {
+            document.getElementById('loadModal').classList.add('show');
+            loadUserSnippets();
+        };
+
+        document.getElementById("cancelLoad").onclick = () => {
+            document.getElementById('loadModal').classList.remove('show');
+        };
+
         // New snippet
         document.getElementById("newBtn").onclick = () => {
             if (editor.getValue().trim() && !confirm('Are you sure? Unsaved changes will be lost.')) {
@@ -2295,6 +2315,7 @@ console.log('DOM loaded and parsed');
         // Update the confirmSave click handler to handle authentication errors
 
         document.getElementById("confirmSave").onclick = async () => {
+
             const title = document.getElementById('snippetTitle').value.trim();
             if (!title) {
                 showNotification('Please enter a title!', 'error');
