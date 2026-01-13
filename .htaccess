@@ -1,0 +1,19 @@
+# Protect environment files from web access
+<FilesMatch "^\.env">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect other sensitive files
+<FilesMatch "\.(env|log|ini|conf)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Enable URL rewriting if needed
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirect requests for .env to 404
+    RewriteRule ^\.env$ - [F,L]
+</IfModule>
