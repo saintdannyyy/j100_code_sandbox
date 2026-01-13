@@ -111,7 +111,7 @@ curl_close($ch);
 if ($curlError) {
     http_response_code(500);
     echo json_encode([
-        "error" => "Execution service unavailable",
+        "error" => "Execution service unavailable. Check your connection",
         "details" => $curlError
     ]);
     exit();
