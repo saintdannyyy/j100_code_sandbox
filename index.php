@@ -1,15 +1,16 @@
 <?php
-// =============================================================================
-// Session Initialization - Must be at the very top before any output
-// =============================================================================
 session_start();
+
+// Load environment variables
+require_once __DIR__ . '/api/Env.php';
+Env::load();
 
 // Get user ID from URL parameter
 $urlUserId = isset($_GET['as']) ? $_GET['as'] : null;
 $snippetId = isset($_GET['snippet']) ? $_GET['snippet'] : null;
 
 // Redirect URL for unauthenticated users
-$redirectUrl = 'https://j100coders.org/coder/codelab.php';
+$redirectUrl = Env::get('REDIRECT_URL', 'https://j100coders.org/coder/codelab.php');
 
 // Initialize or validate session
 if ($urlUserId !== null && !empty($urlUserId) && $urlUserId !== 'anonymous') {
