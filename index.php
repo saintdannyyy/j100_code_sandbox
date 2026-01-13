@@ -2016,6 +2016,7 @@ fn main() {
             if (projectMode) {
                 this.classList.add('active');
                 sidebar.style.display = 'flex';
+
                 langSelect.disabled = true;
 
                 // Initialize with a fresh HTML project structure
@@ -2023,55 +2024,55 @@ fn main() {
                     name: 'index.html',
                     language: 'html',
                     content: `<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Project</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-    <h1>Welcome to J100 Code SandBox</h1>
-    <script src="script.js"><\\/script>
-</body>
-
-</html>`
+                        <html lang="en">
+                        
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>My Project</title>
+                            <link rel="stylesheet" href="style.css">
+                        </head>
+                        
+                        <body>
+                            <h1>Welcome to J100 Code SandBox</h1>
+                            <script src="script.js"><\\/script>
+                        </body>
+                        
+                        </html>`
                 }, {
                     name: 'style.css',
                     language: 'css',
                     content: `/* CSS Stylesheet */
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-}
-
-body {
-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: #fff;
-min-height: 100vh;
-justify-content: center;
-align-items: center;
-}
-
-h1 {
-font-size: 48px;
-color: white;
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}`
+                        * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                        }
+                        
+                        body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: #fff;
+                        min-height: 100vh;
+                        justify-content: center;
+                        align-items: center;
+                        }
+                        
+                        h1 {
+                        font-size: 48px;
+                        color: white;
+                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+                        }`
                 }, {
                     name: 'script.js',
                     language: 'javascript',
                     content: `// JavaScript File
-console.log('Project initialized!');
-
-document.addEventListener('DOMContentLoaded', function() {
-console.log('DOM loaded and parsed');
-// Add your code here
-});`
+                        console.log('Project initialized!');
+                        
+                        document.addEventListener('DOMContentLoaded', function() {
+                        console.log('DOM loaded and parsed');
+                        // Add your code here
+                        });`
                 }];
 
                 currentFileIndex = 0;
@@ -2086,10 +2087,12 @@ console.log('DOM loaded and parsed');
 
                 renderFilesList();
                 updatePreviewVisibility();
-                showNotification('✓ Project mode enabled - VS Code style', 'success');
+                showNotification('Project mode enabled - VS Code style', 'success');
             } else {
                 this.classList.remove('active');
                 sidebar.style.display = 'none';
+                document.getElementById('preview-container').style.display = 'none';
+                document.getElementById('split-divider').style.display = 'none';
                 langSelect.disabled = false;
                 document.getElementById('previewContainer').classList.remove('show');
                 document.getElementById('togglePreviewBtn').classList.remove('active');
