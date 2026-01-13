@@ -1,7 +1,5 @@
 <?php
-// =============================================================================
 // api/execute.php - Code Execution API using Piston
-// =============================================================================
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -62,7 +60,7 @@ if (!isset($languageMap[$lang]) || $languageMap[$lang] === null) {
     if ($lang === 'html' || $lang === 'css') {
         echo json_encode([
             "success" => true,
-            "output" => "HTML/CSS code runs in the browser preview.\nEnable Project Mode and click the Preview button.",
+            "output" => "HTML/CSS code runs in the browser preview.\nEnable Web Mode and click the Preview button.",
             "execution_time" => 0
         ]);
         exit();
