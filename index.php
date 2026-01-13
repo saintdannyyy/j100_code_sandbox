@@ -10,7 +10,7 @@ $urlUserId = isset($_GET['as']) ? $_GET['as'] : null;
 $snippetId = isset($_GET['snippet']) ? $_GET['snippet'] : null;
 
 // Redirect URL for unauthenticated users
-$redirectUrl = Env::get('REDIRECT_URL', 'https://j100coders.org/coder/codelab.php');
+$redirectUrl = Env::get('REDIRECT_URL');
 
 // Initialize or validate session
 if ($urlUserId !== null && !empty($urlUserId) && $urlUserId !== 'anonymous') {
@@ -1217,8 +1217,15 @@ $currentUserId = $_SESSION['user_id'];
                         <select id="lang-select" data-tooltip="Select programming language">
                             <option value="python">Python</option>
                             <option value="javascript">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
                             <option value="cpp">C++</option>
+                            <option value="c">C</option>
+                            <option value="csharp">C#</option>
                             <option value="java">Java</option>
+                            <option value="php">PHP</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
                             <option value="html">HTML</option>
                             <option value="css">CSS</option>
                         </select>
@@ -1490,10 +1497,101 @@ $currentUserId = $_SESSION['user_id'];
         const templates = {
             python: `# Python Code\nprint("Hello from J100Coders CodeBin!")`,
             javascript: `// JavaScript Code\nconsole.log("Hello from J100Coders CodeBin!");`,
+            typescript: `// TypeScript 5.0.3
+function greet(name: string): string {
+    return \`Hello, \${name}!\`;
+}
+    console.log(greet("J100Coders"));
+
+// Try TypeScript features
+interface User {
+    name: string;
+    age: number;
+}
+
+const user: User = { name: "Coder", age: 25 };
+console.log(\`User: \${user.name}, Age: \${user.age}\`);`,
+
             cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello from J100Coders!" << endl;\n    return 0;\n}`,
+            c: `// C 10.2.0
+#include <stdio.h>
+
+int main() {
+    printf("Hello from J100Coders!\\n");
+    
+    char name[] = "Coder";
+    printf("Welcome, %s!\\n", name);
+    
+    return 0;
+}`,
+
+            csharp: `// C# 6.12.0
+using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Hello from J100Coders!");
+        
+        string name = "Coder";
+        Console.WriteLine($"Welcome, {name}!");
+    }
+}`,
+
             java: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from J100Coders!");\n    }\n}`,
             html: `<!DOCTYPE html>\n<html>\n<head>\n    <title>J100Coders</title>\n</head>\n<body>\n    <h1>Hello from J100Coders CodeBin!</h1>\n</body>\n</html>`,
             css: `/* CSS Code */\nbody {\n    background: #0f0f23;\n    color: white;\n    font-family: Arial, sans-serif;\n}`,
+            php: `<?php
+                    // PHP 8.2.3
+                    echo "Hello from J100Coders!\\n";
+
+                    $name = "Coder";
+                    echo "Welcome, $name!\\n";
+
+                    // Try PHP features
+                    $numbers = [1, 2, 3, 4, 5];
+                    $squared = array_map(fn($n) => $n * $n, $numbers);
+                    print_r($squared);
+                    ?>`,
+
+            ruby: `# Ruby 3.0.1
+puts "Hello from J100Coders!"
+
+name = "Coder"
+puts "Welcome, #{name}!"
+
+# Try Ruby features
+numbers = [1, 2, 3, 4, 5]
+squared = numbers.map { |n| n ** 2 }
+puts squared.inspect`,
+
+            go: `// Go 1.16.2
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello from J100Coders!")
+    
+    name := "Coder"
+    fmt.Printf("Welcome, %s!\\n", name)
+    
+    // Try Go features
+    numbers := []int{1, 2, 3, 4, 5}
+    fmt.Println("Numbers:", numbers)
+}`,
+
+            rust: `// Rust 1.68.2
+fn main() {
+    println!("Hello from J100Coders!");
+    
+    let name = "Coder";
+    println!("Welcome, {}!", name);
+    
+    // Try Rust features
+    let numbers: Vec<i32> = (1..=5).collect();
+    println!("Numbers: {:?}", numbers);
+}`,
+
             sql: `-- SQL Query\nSELECT * FROM users\nWHERE created_at >= CURRENT_DATE - INTERVAL '7 days';`,
         };
 
@@ -1562,17 +1660,18 @@ $currentUserId = $_SESSION['user_id'];
             const icons = {
                 'python': 'snake',
                 'javascript': 'js',
+                'typescript': 'code',
                 'java': 'coffee',
                 'cpp': 'code',
                 'c': 'code',
+                'csharp': 'windows',
                 'html': 'html5',
                 'css': 'css3-alt',
                 'sql': 'database',
                 'php': 'php',
                 'ruby': 'gem',
                 'go': 'code',
-                'rust': 'cog',
-                'typescript': 'code'
+                'rust': 'cog'
             };
             return icons[lang] || 'file-code';
         }
@@ -1717,14 +1816,22 @@ $currentUserId = $_SESSION['user_id'];
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
             const icons = {
-                'html': '<i class="fas fa-code"></i>',
-                'css': '<i class="fas fa-palette"></i>',
-                'js': '<i class="fas fa-bolt"></i>',
-                'json': '<i class="fas fa-list"></i>',
-                'md': '<i class="fas fa-file-alt"></i>',
-                'py': '<i class="fas fa-snake"></i>',
-                'java': '<i class="fas fa-cup"></i>',
-                'cpp': '<i class="fas fa-gear"></i>',
+                'html': '<i class="fab fa-html5" style="color: #e34c26;"></i>',
+                'css': '<i class="fab fa-css3-alt" style="color: #264de4;"></i>',
+                'js': '<i class="fab fa-js" style="color: #f7df1e;"></i>',
+                'ts': '<i class="fas fa-code" style="color: #3178c6;"></i>',
+                'json': '<i class="fas fa-brackets-curly" style="color: #cbcb41;"></i>',
+                'md': '<i class="fab fa-markdown" style="color: #083fa1;"></i>',
+                'py': '<i class="fab fa-python" style="color: #3776ab;"></i>',
+                'java': '<i class="fab fa-java" style="color: #007396;"></i>',
+                'cpp': '<i class="fas fa-code" style="color: #00599c;"></i>',
+                'c': '<i class="fas fa-code" style="color: #a8b9cc;"></i>',
+                'cs': '<i class="fas fa-code" style="color: #68217a;"></i>',
+                'php': '<i class="fab fa-php" style="color: #777bb4;"></i>',
+                'rb': '<i class="fas fa-gem" style="color: #cc342d;"></i>',
+                'go': '<i class="fas fa-code" style="color: #00add8;"></i>',
+                'rs': '<i class="fas fa-cog" style="color: #dea584;"></i>',
+                'sql': '<i class="fas fa-database" style="color: #336791;"></i>',
             };
             return icons[ext] || '<i class="fas fa-file"></i>';
         }
@@ -1736,13 +1843,22 @@ $currentUserId = $_SESSION['user_id'];
                 'html': 'html',
                 'css': 'css',
                 'js': 'javascript',
+                'ts': 'typescript',
+                'tsx': 'typescript',
+
                 'json': 'json',
                 'md': 'markdown',
                 'py': 'python',
                 'java': 'java',
                 'cpp': 'cpp',
                 'c': 'cpp',
-                'ts': 'typescript'
+                'ts': 'typescript',
+                'cs': 'csharp',
+                'php': 'php',
+                'rb': 'ruby',
+                'go': 'go',
+                'rs': 'rust',
+                'sql': 'sql'
             };
             return langMap[ext] || 'plaintext';
         }
