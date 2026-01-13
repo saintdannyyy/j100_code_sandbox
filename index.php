@@ -101,60 +101,6 @@ $currentUserId = $_SESSION['user_id'];
             }
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: bold;
-            transition: var(--transition-normal);
-            cursor: pointer;
-        }
-
-        .logo:hover {
-            transform: scale(1.05);
-        }
-
-        .logo-text {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--accent-color) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: gradientShift 3s ease infinite;
-        }
-
-        @keyframes gradientShift {
-
-            0%,
-            100% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-        }
-
-        .logo::before {
-            content: "{ }";
-            color: var(--primary-color);
-            font-size: 28px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.7;
-            }
-        }
-
         #controls {
             display: flex;
             gap: 12px;
@@ -285,21 +231,8 @@ $currentUserId = $_SESSION['user_id'];
             width: 250px;
             background: var(--bg-card);
             border-right: 2px solid var(--border-color);
-            display: flex;
+            display: none;
             flex-direction: column;
-            animation: slideInLeft 0.3s ease;
-        }
-
-        @keyframes slideInLeft {
-            from {
-                transform: translateX(-100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
         }
 
         .sidebar-header {
@@ -335,7 +268,6 @@ $currentUserId = $_SESSION['user_id'];
             background: rgba(42, 42, 62, 0.5);
             border-radius: 6px;
             cursor: pointer;
-            transition: var(--transition-fast);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -350,7 +282,6 @@ $currentUserId = $_SESSION['user_id'];
             border-radius: 6px;
             background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(102, 126, 234, 0.2));
             opacity: 0;
-            transition: var(--transition-fast);
         }
 
         .file-item:hover {
@@ -451,9 +382,13 @@ $currentUserId = $_SESSION['user_id'];
             background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
             cursor: col-resize;
             user-select: none;
-            transition: background 0.2s ease;
             z-index: 50;
             position: relative;
+            display: none;
+        }
+
+        .split-divider.show {
+            display: block;
         }
 
         .split-divider:hover,
@@ -467,7 +402,7 @@ $currentUserId = $_SESSION['user_id'];
             background: white;
             border-left: 2px solid #3a3a52;
             overflow: hidden;
-            display: flex;
+            display: none;
             flex-direction: column;
             min-width: 300px;
             opacity: 0;
@@ -476,6 +411,7 @@ $currentUserId = $_SESSION['user_id'];
         }
 
         .preview-container.show {
+            display: flex;
             opacity: 1;
             pointer-events: auto;
         }
@@ -744,7 +680,6 @@ $currentUserId = $_SESSION['user_id'];
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.3s ease;
         }
 
         .project-mode-toggle:hover:not(.active) {
@@ -991,10 +926,6 @@ $currentUserId = $_SESSION['user_id'];
                 height: 120px;
             }
 
-            .sidebar {
-                width: 200px;
-            }
-
             .preview-container.show {
                 width: 100%;
                 position: absolute;
@@ -1193,7 +1124,7 @@ $currentUserId = $_SESSION['user_id'];
 <body>
     <div class="main-content">
         <!-- Sidebar for file management -->
-        <div class="sidebar" id="sidebar" style="display: none;">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>Files</h3>
                 <button class="add-file-btn" id="addFileBtn">
@@ -2024,55 +1955,54 @@ fn main() {
                     name: 'index.html',
                     language: 'html',
                     content: `<!DOCTYPE html>
-                        <html lang="en">
-                        
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <title>My Project</title>
-                            <link rel="stylesheet" href="style.css">
-                        </head>
-                        
-                        <body>
-                            <h1>Welcome to J100 Code SandBox</h1>
-                            <script src="script.js"><\\/script>
-                        </body>
-                        
-                        </html>`
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Project</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>Welcome to J100 Code SandBox</h1>
+    <script src="script.js"><\\/script>
+</body>
+
+</html>`
                 }, {
                     name: 'style.css',
                     language: 'css',
                     content: `/* CSS Stylesheet */
-                        * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                        }
-                        
-                        body {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: #fff;
-                        min-height: 100vh;
-                        justify-content: center;
-                        align-items: center;
-                        }
-                        
-                        h1 {
-                        font-size: 48px;
-                        color: white;
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-                        }`
+        * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        }
+        
+        body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        min-height: 100vh;
+        justify-content: center;
+        align-items: center;
+        }
+        
+        h1 {
+        font-size: 48px;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }`
                 }, {
                     name: 'script.js',
                     language: 'javascript',
                     content: `// JavaScript File
-                        console.log('Project initialized!');
-                        
-                        document.addEventListener('DOMContentLoaded', function() {
-                        console.log('DOM loaded and parsed');
-                        // Add your code here
-                        });`
+        console.log('Project initialized!');   
+        document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded and parsed');
+        // Add your code here
+        });`
                 }];
 
                 currentFileIndex = 0;
@@ -2091,8 +2021,6 @@ fn main() {
             } else {
                 this.classList.remove('active');
                 sidebar.style.display = 'none';
-                document.getElementById('preview-container').style.display = 'none';
-                document.getElementById('split-divider').style.display = 'none';
                 langSelect.disabled = false;
                 document.getElementById('previewContainer').classList.remove('show');
                 document.getElementById('togglePreviewBtn').classList.remove('active');
