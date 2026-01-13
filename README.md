@@ -142,13 +142,6 @@ Write, run, save, and share code snippets in 11+ programming languages
   <p><em>Fully responsive design for mobile devices</em></p>
 </div>
 
-> **Note:** To add your own screenshots:
->
-> 1. Create a folder: `assets/screenshots/`
-> 2. Take screenshots of your application
-> 3. Save them with the filenames shown above
-> 4. Replace these placeholder references
-
 ---
 
 ## Architecture
@@ -551,7 +544,7 @@ ide/
 
 - [ ] User registration and login
 - [ ] JWT-based authentication
-- [ ] User profiles and avatars
+- [x] User profiles and avatars
 - [ ] Password reset functionality
 
 ### Snippet Features
@@ -637,15 +630,7 @@ Contributions are welcome! To contribute:
 
 ## License
 
-This project is currently **proprietary/internal use**.
-
-For open source release, consider:
-
-- MIT License (permissive)
-- GPL v3 (copyleft)
-- Apache 2.0 (permissive with patent grant)
-
----
+## This project is currently under **Apache 2.0 License**
 
 ## Acknowledgments
 
@@ -658,9 +643,9 @@ For open source release, consider:
 
 ## Contact & Support
 
-**Project Maintainer**: [Your Name]  
-**Email**: [your.email@example.com]  
-**Website**: [https://yourwebsite.com](https://yourwebsite.com)
+**Project Maintainer**: [Saintdannyy]  
+**Email**: [saintdannyyy@gmail.com]  
+**Website**: [https://saintdannyyy.vercel.app](https://saintdannyyy.vercel.app)
 
 ---
 
