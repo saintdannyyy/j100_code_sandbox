@@ -55,6 +55,20 @@ Write, run, save, and share code snippets in 11+ programming languages
   - Ruby 3.0.1
   - Go 1.16.2
   - Rust 1.68.2
+  - **SQL (SQLite)** with persistent databases
+
+### SQL Sandbox
+
+- **Persistent SQLite databases** per snippet
+- **Full SQL support**: CREATE, INSERT, UPDATE, DELETE, SELECT
+- **Table output** with styled grid display
+- **Database isolation** - each snippet has its own DB
+- **Reset button** to start fresh
+- **Security features**:
+  - Blocked dangerous commands (ATTACH, LOAD_EXTENSION)
+  - Query timeout (5 seconds)
+  - Max database size (5MB)
+  - Row limit (1000 per query)
 
 ### Project Mode
 
