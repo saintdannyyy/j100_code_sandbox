@@ -50,10 +50,12 @@ $lang = strtolower($data->language);
 // Handle non-executable languages
 if (!isset($languageMap[$lang]) || $languageMap[$lang] === null) {
     if ($lang === 'sql') {
+        // Redirect SQL to dedicated endpoint
+        // Client should call sql-execute.php directly
         echo json_encode([
-            "success" => true,
-            "output" => "SQL queries cannot be executed in sandbox mode.\nUse a database client to run SQL commands.",
-            "execution_time" => 0
+            "success" => false,
+            "error" => "SQL queries cannot be executed in sandbox mode. \nYou will be redirected.",
+            "redirect" => "sql-execute.php"
         ]);
         exit();
     }
