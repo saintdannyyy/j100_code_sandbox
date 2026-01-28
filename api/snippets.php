@@ -223,7 +223,7 @@ function deleteSnippet($db, $snippet_id)
     }
 
     // Check if snippet exists and belongs to user
-    $checkQuery = "SELECT author_id FROM code_snippets WHERE id = :id";
+    $checkQuery = "SELECT author_id, language FROM code_snippets WHERE id = :id";
     $checkStmt = $db->prepare($checkQuery);
     $checkStmt->bindParam(':id', $snippet_id);
     $checkStmt->execute();
@@ -239,6 +239,15 @@ function deleteSnippet($db, $snippet_id)
         http_response_code(403);
         echo json_encode(["error" => "You can only delete your own snippets"]);
         return;
+    }
+
+    // Delete associated SQLite database if it's a SQL snippet
+    if ($snippet['language'] === 'sql') {
+        $dbFolder = __DIR__ . '/../databases/';
+        $sqliteDbPath = $dbFolder . 'snippet_' . preg_replace('/[^a-zA-Z0-9]/', '', $snippet_id) . '.db';
+        if (file_exists($sqliteDbPath)) {
+            unlink($sqliteDbPath);
+        }
     }
 
     $query = "DELETE FROM code_snippets WHERE id = :id";
