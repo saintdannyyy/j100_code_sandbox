@@ -517,6 +517,175 @@ $currentUserId = $_SESSION['user_id'];
             color: #4ade80;
         }
 
+        /* SQL Output Table Styles */
+        .sql-results {
+            width: 100%;
+        }
+
+        .sql-statement-result {
+            margin-bottom: 16px;
+            border: 1px solid #3a3a52;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .sql-statement-header {
+            background: #2a2a3e;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #a0a0b0;
+            border-bottom: 1px solid #3a3a52;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sql-statement-header .sql-type {
+            background: #4a4a6a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .sql-statement-header .sql-type.error {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .sql-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .sql-table th {
+            background: #1a1a2e;
+            color: #00d4ff;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #3a3a52;
+            position: sticky;
+            top: 0;
+        }
+
+        .sql-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #2a2a3e;
+            color: #e0e0f0;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sql-table tr:hover td {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .sql-table tr:nth-child(even) td {
+            background: rgba(42, 42, 62, 0.5);
+        }
+
+        .sql-table tr:nth-child(even):hover td {
+            background: rgba(0, 212, 255, 0.15);
+        }
+
+        .sql-table td.null-value {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .sql-affected-rows {
+            padding: 12px;
+            color: #4ade80;
+            font-size: 13px;
+        }
+
+        .sql-affected-rows i {
+            margin-right: 8px;
+        }
+
+        .sql-error-message {
+            padding: 12px;
+            color: #f87171;
+            font-size: 13px;
+        }
+
+        .sql-db-info {
+            background: #1a1a2e;
+            padding: 8px 12px;
+            border-top: 1px solid #3a3a52;
+            font-size: 11px;
+            color: #6b7280;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sql-schema-panel {
+            background: #1a1a2e;
+            border: 1px solid #3a3a52;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .sql-schema-header {
+            background: #2a2a3e;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #00d4ff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sql-schema-header:hover {
+            background: #3a3a52;
+        }
+
+        .sql-schema-content {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #a0a0b0;
+        }
+
+        .sql-schema-table {
+            margin: 8px 0;
+        }
+
+        .sql-schema-table-name {
+            color: #facc15;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .sql-schema-columns {
+            padding-left: 16px;
+            font-size: 11px;
+        }
+
+        .sql-schema-column {
+            color: #9ca3af;
+        }
+
+        .sql-schema-column .pk {
+            color: #f59e0b;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        .reset-db-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        }
+
+        .reset-db-btn:hover {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4) !important;
+        }
+
         /* Modal Styles */
         .modal {
             display: none;
@@ -1157,6 +1326,7 @@ $currentUserId = $_SESSION['user_id'];
                             <option value="ruby">Ruby</option>
                             <option value="go">Go</option>
                             <option value="rust">Rust</option>
+                            <option value="sql">SQL</option>
                             <option value="html">HTML</option>
                             <option value="css">CSS</option>
                         </select>
@@ -1188,6 +1358,9 @@ $currentUserId = $_SESSION['user_id'];
                     </button>
                     <button class="project-mode-toggle" id="projectModeBtn" data-tooltip="Toggle multi-file project mode">
                         <i class="fas fa-folder"></i> Web Mode
+                    </button>
+                    <button class="reset-db-btn" id="resetDbBtn" style="display: none;" data-tooltip="Reset SQL database">
+                        <i class="fas fa-database"></i> Reset DB
                     </button>
                     <button class="toggle-preview-btn" id="togglePreviewBtn" style="display: none;" data-tooltip="Toggle live preview">
                         <i class="fas fa-eye"></i> Preview
@@ -1523,7 +1696,29 @@ fn main() {
     println!("Numbers: {:?}", numbers);
 }`,
 
-            sql: `-- SQL Query\nSELECT * FROM users\nWHERE created_at >= CURRENT_DATE - INTERVAL '7 days';`,
+            sql: `-- Welcome to SQL Sandbox! 🗃️
+-- First, create a table
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    age INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert some data
+INSERT INTO users (name, email, age) VALUES 
+    ('Alice', 'alice@example.com', 28),
+    ('Bob', 'bob@example.com', 34),
+    ('Charlie', 'charlie@example.com', 22);
+
+-- Query your data
+SELECT * FROM users;
+
+-- Try more queries:
+-- SELECT name, age FROM users WHERE age > 25;
+-- UPDATE users SET age = 29 WHERE name = 'Alice';
+-- DELETE FROM users WHERE id = 3;`,
         };
 
         // File Management State
@@ -1555,8 +1750,23 @@ fn main() {
             // Show/hide preview for HTML/CSS/JS
             updatePreviewVisibility();
 
+            // Show/hide SQL Reset DB button
+            updateSqlButtonVisibility();
+
             showNotification(`Switched to ${lang.toUpperCase()}`, 'success');
         });
+
+        // Update SQL button visibility
+        function updateSqlButtonVisibility() {
+            const lang = document.getElementById("lang-select").value;
+            const resetDbBtn = document.getElementById('resetDbBtn');
+
+            if (lang === 'sql') {
+                resetDbBtn.style.display = 'flex';
+            } else {
+                resetDbBtn.style.display = 'none';
+            }
+        }
 
         // Load Monaco
         require.config({
@@ -1657,6 +1867,9 @@ fn main() {
 
                 currentSnippetId = snippet.id;
 
+                // Update SQL button visibility based on loaded snippet language
+                updateSqlButtonVisibility();
+
                 outputDiv.innerHTML =
                     `<span class="success"><i class="fas fa-check-circle"></i> Snippet loaded successfully!</span>\n\n` +
                     `Title: ${escapeHtml(snippet.title)}\n` +
@@ -1717,6 +1930,9 @@ fn main() {
 
                     // Setup auto-update for preview
                     setupPreviewAutoUpdate();
+
+                    // Initialize SQL button visibility
+                    updateSqlButtonVisibility();
                 }, 100);
 
             } catch (error) {
@@ -2307,34 +2523,11 @@ fn main() {
             outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Executing code...</span>';
 
             try {
-                const response = await fetch(`${API_BASE}/execute.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        language: lang,
-                        code: code
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.error) {
-                    outputDiv.innerHTML = `<span class="info">═══ Execution Error ═══</span>\n<span class="error">${escapeHtml(result.error)}</span>${result.details ? '\n<span class="error">' + escapeHtml(result.details) + '</span>' : ''}`;
+                // SQL has special handling
+                if (lang === 'sql') {
+                    await executeSql(code, outputDiv);
                 } else {
-                    const statusIcon = result.success ?
-                        '<i class="fas fa-check-circle"></i>' :
-                        '<i class="fas fa-exclamation-triangle"></i>';
-                    const statusClass = result.success ? 'success' : 'error';
-                    const versionInfo = result.version ? ` (${result.language} ${result.version})` : '';
-                    const timeInfo = result.execution_time ? `\n<span class="info">Execution time: ${result.execution_time}s</span>` : '';
-
-                    outputDiv.innerHTML =
-                        `<span class="info">═══ ${lang.toUpperCase()}${versionInfo} ═══</span>\n` +
-                        `<span class="${statusClass}">${escapeHtml(result.output)}</span>` +
-                        timeInfo +
-                        `\n<span class="info">═══ ${statusIcon} Completed ═══</span>`;
+                    await executeCode(lang, code, outputDiv);
                 }
             } catch (error) {
                 console.error('Execution error:', error);
@@ -2345,6 +2538,203 @@ fn main() {
             } finally {
                 runBtn.classList.remove('running');
                 runBtn.disabled = false;
+            }
+        };
+
+        // Execute regular code via Piston
+        async function executeCode(lang, code, outputDiv) {
+            const response = await fetch(`${API_BASE}/execute.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    language: lang,
+                    code: code
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                outputDiv.innerHTML = `<span class="info">═══ Execution Error ═══</span>\n<span class="error">${escapeHtml(result.error)}</span>${result.details ? '\n<span class="error">' + escapeHtml(result.details) + '</span>' : ''}`;
+            } else {
+                const statusIcon = result.success ?
+                    '<i class="fas fa-check-circle"></i>' :
+                    '<i class="fas fa-exclamation-triangle"></i>';
+                const statusClass = result.success ? 'success' : 'error';
+                const versionInfo = result.version ? ` (${result.language} ${result.version})` : '';
+                const timeInfo = result.execution_time ? `\n<span class="info">Execution time: ${result.execution_time}s</span>` : '';
+
+                outputDiv.innerHTML =
+                    `<span class="info">═══ ${lang.toUpperCase()}${versionInfo} ═══</span>\n` +
+                    `<span class="${statusClass}">${escapeHtml(result.output)}</span>` +
+                    timeInfo +
+                    `\n<span class="info">═══ ${statusIcon} Completed ═══</span>`;
+            }
+        }
+
+        // Execute SQL with table output
+        async function executeSql(sql, outputDiv) {
+            const response = await fetch(`${API_BASE}/sql-execute.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    sql: sql,
+                    snippet_id: currentSnippetId,
+                    action: 'execute'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                outputDiv.innerHTML = `
+                    <span class="info">═══ SQL Error ═══</span>
+                    <span class="error"><i class="fas fa-exclamation-circle"></i> ${escapeHtml(result.error)}</span>
+                    ${result.details ? '<span class="error">' + escapeHtml(result.details) + '</span>' : ''}
+                `;
+                return;
+            }
+
+            // Build SQL results HTML
+            let html = '<div class="sql-results">';
+            html += `<span class="info">═══ SQL Results ═══</span>`;
+
+            for (const stmtResult of result.results) {
+                html += '<div class="sql-statement-result">';
+
+                // Statement header
+                const typeClass = stmtResult.error ? 'error' : '';
+                html += `<div class="sql-statement-header">
+                    <span>Statement #${stmtResult.statement}</span>
+                    <span class="sql-type ${typeClass}">${stmtResult.type || 'ERROR'}</span>
+                </div>`;
+
+                if (stmtResult.error) {
+                    // Error output
+                    html += `<div class="sql-error-message">
+                        <i class="fas fa-exclamation-triangle"></i> ${escapeHtml(stmtResult.error)}
+                    </div>`;
+                } else if (stmtResult.type === 'query' && stmtResult.columns && stmtResult.columns.length > 0) {
+                    // Table output for SELECT queries
+                    html += '<div style="overflow-x: auto;">';
+                    html += '<table class="sql-table">';
+                    html += '<thead><tr>';
+                    for (const col of stmtResult.columns) {
+                        html += `<th>${escapeHtml(col)}</th>`;
+                    }
+                    html += '</tr></thead>';
+                    html += '<tbody>';
+
+                    if (stmtResult.rows.length === 0) {
+                        html += `<tr><td colspan="${stmtResult.columns.length}" style="text-align: center; color: #6b7280;">No rows returned</td></tr>`;
+                    } else {
+                        for (const row of stmtResult.rows) {
+                            html += '<tr>';
+                            for (const col of stmtResult.columns) {
+                                const value = row[col];
+                                if (value === null) {
+                                    html += '<td class="null-value">NULL</td>';
+                                } else {
+                                    html += `<td>${escapeHtml(String(value))}</td>`;
+                                }
+                            }
+                            html += '</tr>';
+                        }
+                    }
+
+                    html += '</tbody></table></div>';
+
+                    // Row count info
+                    const truncatedNote = stmtResult.truncated ? ' (truncated to 1000 rows)' : '';
+                    html += `<div class="sql-affected-rows">
+                        <i class="fas fa-table"></i> ${stmtResult.row_count} row(s) returned${truncatedNote}
+                    </div>`;
+                } else {
+                    // Non-query output (INSERT, UPDATE, DELETE, CREATE, etc.)
+                    let message = '';
+                    switch (stmtResult.type) {
+                        case 'INSERT':
+                            message = `Inserted ${stmtResult.rows_affected} row(s)`;
+                            if (stmtResult.last_insert_id) {
+                                message += ` (last ID: ${stmtResult.last_insert_id})`;
+                            }
+                            break;
+                        case 'UPDATE':
+                            message = `Updated ${stmtResult.rows_affected} row(s)`;
+                            break;
+                        case 'DELETE':
+                            message = `Deleted ${stmtResult.rows_affected} row(s)`;
+                            break;
+                        case 'CREATE':
+                            message = 'Table/Index created successfully';
+                            break;
+                        case 'DROP':
+                            message = 'Table/Index dropped successfully';
+                            break;
+                        case 'ALTER':
+                            message = 'Table altered successfully';
+                            break;
+                        default:
+                            message = `Statement executed (${stmtResult.rows_affected} rows affected)`;
+                    }
+                    html += `<div class="sql-affected-rows">
+                        <i class="fas fa-check-circle"></i> ${message}
+                    </div>`;
+                }
+
+                html += '</div>'; // end sql-statement-result
+            }
+
+            // Database info footer
+            html += `<div class="sql-db-info">
+                <span><i class="fas fa-database"></i> SQLite Database</span>
+                <span>Size: ${result.db_size_formatted || '0 bytes'} | Time: ${result.execution_time}s</span>
+            </div>`;
+
+            html += '</div>'; // end sql-results
+            outputDiv.innerHTML = html;
+        }
+
+        // Reset SQL Database
+        document.getElementById("resetDbBtn").onclick = async () => {
+            if (!confirm('Are you sure you want to reset the database? All tables and data will be deleted permanently.')) {
+                return;
+            }
+
+            const outputDiv = document.getElementById("output");
+            outputDiv.innerHTML = '<span class="loading"><i class="fas fa-spinner fa-spin"></i> Resetting database...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/sql-execute.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        sql: '',
+                        snippet_id: currentSnippetId,
+                        action: 'reset'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    outputDiv.innerHTML = `<span class="success"><i class="fas fa-check-circle"></i> ${result.message}</span>`;
+                    showNotification('Database reset successfully!', 'success');
+                } else {
+                    outputDiv.innerHTML = `<span class="error"><i class="fas fa-exclamation-circle"></i> ${result.error}</span>`;
+                    showNotification('Failed to reset database', 'error');
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                outputDiv.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Failed to reset database</span>';
             }
         };
 
@@ -2574,6 +2964,9 @@ fn main() {
                 }
 
                 currentSnippetId = snippet.id;
+
+                // Update SQL button visibility based on loaded snippet language
+                updateSqlButtonVisibility();
 
                 outputDiv.innerHTML =
                     `<span class="success"><i class="fas fa-check-circle"></i> Snippet loaded successfully!</span>\n\n` +
